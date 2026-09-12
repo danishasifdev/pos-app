@@ -14,8 +14,16 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const cart: { productId: string; quantity: number }[] = body.cart ?? [];
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Request body must be valid JSON" },
+      { status: 400 },
+    );
+  }
+  const cart = Array.isArray(body.cart) ? body.cart.filter(isCartLine) : [];
 
   if (!Array.isArray(cart) || cart.length === 0) {
     return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -63,7 +71,9 @@ export async function POST(req: NextRequest) {
   const discount =
     typeof body.discount === "number" ? Math.max(0, body.discount) : 0;
   const total = Math.max(0, subtotal + taxTotal - discount);
-  const paymentMethod = body.paymentMethod ?? "cash";
+  const paymentMethod = isPaymentMethod(body.paymentMethod)
+    ? body.paymentMethod
+    : "cash";
   const amountTendered =
     typeof body.amountTendered === "number" ? body.amountTendered : total;
   const changeDue = Math.max(0, amountTendered - total);
@@ -81,8 +91,8 @@ export async function POST(req: NextRequest) {
     paymentMethod,
     amountTendered: round2(amountTendered),
     changeDue: round2(changeDue),
-    cashier: body.cashier ?? "Front Register",
-    note: body.note ?? undefined,
+    cashier: typeof body.cashier === "string" ? body.cashier : "Front Register",
+    note: typeof body.note === "string" ? body.note : undefined,
   };
 
   addReceipt(receipt);
@@ -91,4 +101,18 @@ export async function POST(req: NextRequest) {
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
+}
+
+function isCartLine(
+  value: unknown,
+): value is { productId: string; quantity: number } {
+  if (typeof value !== "object" || value === null) return false;
+  const line = value as Record<string, unknown>;
+  return (
+    typeof line.productId === "string" && typeof line.quantity === "number"
+  );
+}
+
+function isPaymentMethod(value: unknown): value is Receipt["paymentMethod"] {
+  return value === "cash" || value === "card" || value === "mobile";
 }

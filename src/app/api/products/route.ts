@@ -8,9 +8,21 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Request body must be valid JSON" },
+      { status: 400 },
+    );
+  }
 
-  if (!body.name || typeof body.price !== "number") {
+  if (
+    typeof body.name !== "string" ||
+    !body.name.trim() ||
+    typeof body.price !== "number"
+  ) {
     return NextResponse.json(
       { error: "name and numeric price are required" },
       { status: 400 },
@@ -28,13 +40,14 @@ export async function POST(req: NextRequest) {
 
   const product = addProduct({
     id: `p-${randomUUID()}`,
-    name: body.name,
+    name: body.name.trim(),
     price: body.price,
-    categoryId: body.categoryId ?? "cat-snacks",
-    emoji: body.emoji ?? "🛍️",
-    sku: body.sku ?? "",
-    taxable: body.taxable ?? true,
-    active: body.active ?? true,
+    categoryId:
+      typeof body.categoryId === "string" ? body.categoryId : "cat-snacks",
+    emoji: typeof body.emoji === "string" ? body.emoji : "🛍️",
+    sku: typeof body.sku === "string" ? body.sku : "",
+    taxable: typeof body.taxable === "boolean" ? body.taxable : true,
+    active: typeof body.active === "boolean" ? body.active : true,
   });
 
   return NextResponse.json(product, { status: 201 });

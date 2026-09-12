@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { Category, Product } from "@/lib/types";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 type Draft = {
   id?: string;
@@ -37,6 +38,7 @@ export function ProductsManager({
 }) {
   const [products, setProducts] = useState(initialProducts);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
@@ -111,19 +113,38 @@ export function ProductsManager({
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this product?")) return;
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    await fetch(`/api/products/${id}`, { method: "DELETE" });
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? "Could not delete product");
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      setNotice({ message: "Product deleted", tone: "success" });
+    } catch (e) {
+      setNotice({
+        message: e instanceof Error ? e.message : "Could not delete product",
+        tone: "error",
+      });
+    }
   }
 
   async function toggleActive(p: Product) {
     const updated = { ...p, active: !p.active };
-    setProducts((prev) => prev.map((x) => (x.id === p.id ? updated : x)));
-    await fetch(`/api/products/${p.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ active: updated.active }),
-    });
+    try {
+      const res = await fetch(`/api/products/${p.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: updated.active }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? "Could not update product");
+      setProducts((prev) => prev.map((x) => (x.id === p.id ? body : x)));
+      setNotice({ message: "Product updated", tone: "success" });
+    } catch (e) {
+      setNotice({
+        message: e instanceof Error ? e.message : "Could not update product",
+        tone: "error",
+      });
+    }
   }
 
   return (
@@ -214,7 +235,7 @@ export function ProductsManager({
                         <Pencil size={14} />
                       </button>
                       <button
-                        onClick={() => remove(p.id)}
+                        onClick={() => setPendingDelete(p)}
                         className="text-muted-fg hover:text-red-500"
                       >
                         <Trash2 size={14} />
@@ -229,8 +250,14 @@ export function ProductsManager({
       </div>
 
       {draft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setDraft(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-semibold text-fg">
                 {draft.id ? "Edit product" : "New product"}
@@ -311,6 +338,20 @@ export function ProductsManager({
             </button>
           </div>
         </div>
+      )}
+
+      {pendingDelete && (
+        <ConfirmationModal
+          title="Delete product?"
+          message={`Delete ${pendingDelete.name}? This cannot be undone.`}
+          confirmLabel="Delete"
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            const id = pendingDelete.id;
+            setPendingDelete(null);
+            void remove(id);
+          }}
+        />
       )}
     </div>
   );

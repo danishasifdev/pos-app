@@ -6,7 +6,15 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  const patch = await req.json();
+  let patch: Record<string, unknown>;
+  try {
+    patch = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Request body must be valid JSON" },
+      { status: 400 },
+    );
+  }
   const current = getSettings();
   const updated = { ...current, ...patch };
   saveSettings(updated);

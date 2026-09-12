@@ -3,10 +3,18 @@ import { deleteProduct, updateProduct } from "@/lib/db";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const patch = await req.json();
+  let patch: Record<string, unknown>;
+  try {
+    patch = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Request body must be valid JSON" },
+      { status: 400 },
+    );
+  }
   const updated = updateProduct(id, patch);
   if (!updated) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -16,7 +24,7 @@ export async function PUT(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   deleteProduct(id);

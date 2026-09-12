@@ -35,8 +35,14 @@ export function PaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold text-fg">Take payment</h2>
           <button onClick={onClose} className="text-muted-fg hover:text-fg">
@@ -95,8 +101,8 @@ export function PaymentModal({
 
         {method !== "cash" && (
           <p className="mb-2 rounded-lg bg-surface-muted px-3 py-3 text-center text-xs text-muted-fg">
-            Confirm once the {method === "card" ? "card" : "mobile wallet"} payment has gone
-            through on your terminal.
+            Confirm once the {method === "card" ? "card" : "mobile wallet"}{" "}
+            payment has gone through on your terminal.
           </p>
         )}
 

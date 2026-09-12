@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Printer, Ban } from "lucide-react";
 import { Receipt, StoreSettings } from "@/lib/types";
+import { ConfirmationModal } from "./ConfirmationModal";
 import { ReceiptPrintable } from "./ReceiptPrintable";
 
 export function ReceiptDetail({
@@ -16,18 +17,32 @@ export function ReceiptDetail({
 }) {
   const router = useRouter();
   const [current, setCurrent] = useState(receipt);
+  const [pendingVoid, setPendingVoid] = useState(false);
   const [voiding, setVoiding] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  function printReceipt() {
+    try {
+      window.print();
+    } catch {
+      setNotice("Printing is unavailable in this browser.");
+    }
+  }
 
   async function handleVoid() {
-    if (!confirm(`Void receipt #${current.number}? This cannot be undone.`)) return;
     setVoiding(true);
     try {
-      const res = await fetch(`/api/receipts/${current.id}`, { method: "DELETE" });
-      if (res.ok) {
-        const updated = await res.json();
-        setCurrent(updated);
-        router.refresh();
-      }
+      const res = await fetch(`/api/receipts/${current.id}`, {
+        method: "DELETE",
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? "Could not void receipt");
+      setCurrent(body);
+      router.refresh();
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Could not void receipt",
+      );
     } finally {
       setVoiding(false);
     }
@@ -45,14 +60,19 @@ export function ReceiptDetail({
 
       <div className="grid gap-4 md:grid-cols-[1fr_320px]">
         <div className="rounded-xl border border-border bg-surface p-5">
-          <h1 className="mb-1 text-lg font-semibold text-fg">Receipt #{current.number}</h1>
+          <h1 className="mb-1 text-lg font-semibold text-fg">
+            Receipt #{current.number}
+          </h1>
           <p className="mb-4 text-sm text-muted-fg">
             {new Date(current.createdAt).toLocaleString()} · {current.cashier}
           </p>
 
           <ul className="mb-4 divide-y divide-border">
             {current.items.map((item, i) => (
-              <li key={i} className="flex items-center justify-between py-2 text-sm">
+              <li
+                key={i}
+                className="flex items-center justify-between py-2 text-sm"
+              >
                 <div>
                   <p className="font-medium text-fg">{item.name}</p>
                   <p className="text-xs text-muted-fg">
@@ -69,13 +89,19 @@ export function ReceiptDetail({
           </ul>
 
           <div className="space-y-1 border-t border-border pt-3 text-sm">
-            <Row label="Subtotal" value={fmt(current.subtotal, settings.currencySymbol)} />
+            <Row
+              label="Subtotal"
+              value={fmt(current.subtotal, settings.currencySymbol)}
+            />
             <Row
               label={`Tax (${current.taxRate}%)`}
               value={fmt(current.taxTotal, settings.currencySymbol)}
             />
             {current.discount > 0 && (
-              <Row label="Discount" value={`-${fmt(current.discount, settings.currencySymbol)}`} />
+              <Row
+                label="Discount"
+                value={`-${fmt(current.discount, settings.currencySymbol)}`}
+              />
             )}
             <div className="flex justify-between border-t border-border pt-2 text-base font-semibold text-fg">
               <span>Total</span>
@@ -85,7 +111,7 @@ export function ReceiptDetail({
 
           <div className="mt-4 flex gap-2">
             <button
-              onClick={() => window.print()}
+              onClick={printReceipt}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
             >
               <Printer size={16} />
@@ -93,7 +119,7 @@ export function ReceiptDetail({
             </button>
             {!current.voided && (
               <button
-                onClick={handleVoid}
+                onClick={() => setPendingVoid(true)}
                 disabled={voiding}
                 className="flex items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
               >
@@ -108,6 +134,26 @@ export function ReceiptDetail({
           <ReceiptPrintable receipt={current} settings={settings} />
         </div>
       </div>
+      {notice && (
+        <div
+          role="alert"
+          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
+          {notice}
+        </div>
+      )}
+      {pendingVoid && (
+        <ConfirmationModal
+          title="Void receipt?"
+          message={`Void receipt #${current.number}? This cannot be undone.`}
+          confirmLabel="Void receipt"
+          onCancel={() => setPendingVoid(false)}
+          onConfirm={() => {
+            setPendingVoid(false);
+            void handleVoid();
+          }}
+        />
+      )}
     </div>
   );
 }

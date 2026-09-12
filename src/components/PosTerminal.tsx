@@ -266,9 +266,23 @@ function ReceiptSuccessModal({
   settings: StoreSettings;
   onClose: () => void;
 }) {
+  function printReceipt() {
+    try {
+      window.print();
+    } catch (e) {
+      console.log("Error :", e);
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-surface shadow-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-surface shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="flex items-center gap-2 border-b border-border px-5 py-4">
           <CheckCircle2 size={20} className="text-emerald-500" />
           <div>
@@ -289,7 +303,7 @@ function ReceiptSuccessModal({
             Close
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={printReceipt}
             className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             <Printer size={16} />
