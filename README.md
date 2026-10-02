@@ -1,24 +1,24 @@
 # Mall POS
 
-A point-of-sale terminal for mall kiosks and small retail stores — built with
+A point-of-sale terminal for mall kiosks and small retail stores - built with
 Next.js (App Router) and Tailwind CSS. Ring up products, take payment, print
 an 80mm-style receipt, and browse/reprint/void past sales.
 
 ## Features
 
-- **Terminal** — category tabs, product search, tap-to-add cart, cash/card/
+- **Terminal** - category tabs, product search, tap-to-add cart, cash/card/
   mobile checkout with a cash numpad and automatic change calculation
-- **Printing** — a proper receipt layout (store header, line items, tax,
-  total, payment/change) that prints cleanly via the browser's print dialog —
+- **Printing** - a proper receipt layout (store header, line items, tax,
+  total, payment/change) that prints cleanly via the browser's print dialog -
   works with any printer registered on the OS, including 80mm thermal
   receipt printers
-- **Receipt history** — every sale is saved, searchable by receipt number or
+- **Receipt history** - every sale is saved, searchable by receipt number or
   item, reprintable, voidable
-- **Product manager** — add/edit/hide/delete products and see them reflected
+- **Product manager** - add/edit/hide/delete products and see them reflected
   on the terminal instantly
-- **Store settings** — store name/address/phone, tax rate, currency symbol,
+- **Store settings** - store name/address/phone, tax rate, currency symbol,
   receipt footer message
-- **Themes** — 6 built-in color themes (Slate, Emerald, Indigo, Rose, Amber,
+- **Themes** - 6 built-in color themes (Slate, Emerald, Indigo, Rose, Amber,
   Midnight) switchable from any page, saved per-browser
 
 ## Quick start

@@ -1,4 +1,5 @@
 import { DailySales } from "@/lib/types";
+import { formatDayLabel } from "@/lib/format";
 
 export function SalesTrendChart({
   dailySales,
@@ -29,10 +30,7 @@ export function SalesTrendChart({
         {dailySales.map((day) => {
           const value = valueFor(day);
           const height = value === 0 ? 2 : Math.max(6, (value / maximum) * 100);
-          const label = new Date(`${day.day}T12:00:00`).toLocaleDateString(
-            undefined,
-            { month: "short", day: "numeric" },
-          );
+          const label = formatDayLabel(day.day);
           return (
             <div
               className="flex h-full min-w-0 flex-col items-center justify-end gap-2"

@@ -54,7 +54,7 @@ export function AccountForm({
         Email
         <input
           autoComplete="email"
-          className="mt-1.5 w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-fg outline-none focus:border-primary"
+          className="mt-1.5 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-fg shadow-sm outline-none transition-colors placeholder:text-muted-fg focus:border-primary"
           onChange={(event) => setEmail(event.target.value)}
           required
           type="email"
@@ -65,7 +65,7 @@ export function AccountForm({
         Password
         <input
           autoComplete={mode === "login" ? "current-password" : "new-password"}
-          className="mt-1.5 w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-fg outline-none focus:border-primary"
+          className="mt-1.5 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-fg shadow-sm outline-none transition-colors placeholder:text-muted-fg focus:border-primary"
           minLength={mode === "register" ? 12 : undefined}
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -74,12 +74,12 @@ export function AccountForm({
         />
       </label>
       {mode === "register" && (
-        <p className="text-xs text-muted-fg">
+        <p className="-mt-2 text-xs text-muted-fg">
           Use at least 12 characters. Your account includes a private sample POS.
         </p>
       )}
       <button
-        className="w-full rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground disabled:opacity-60"
+        className="w-full rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-60"
         disabled={submitting}
         type="submit"
       >

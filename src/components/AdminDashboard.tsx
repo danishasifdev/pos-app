@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LoaderCircle } from "lucide-react";
-import { AccountActivity, AdminDashboardData, AdminTransaction } from "@/lib/types";
+import {
+  AccountActivity,
+  AdminDashboardData,
+  AdminTransaction,
+} from "@/lib/types";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { DashboardActivity } from "./DashboardActivity";
 import { SalesTrendChart } from "./SalesTrendChart";
 import { useToast } from "./ToastProvider";
@@ -32,7 +37,9 @@ export function AdminDashboard({
   const { showToast } = useToast();
   const [data, setData] = useState(initialData);
   const [tab, setTab] = useState<Tab>("overview");
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
+    null,
+  );
   const [selectedActivity, setSelectedActivity] = useState<{
     accountId: string;
     events: AccountActivity[];
@@ -78,11 +85,10 @@ export function AdminDashboard({
         ? selectedAccount.id
         : null;
   const accountTransactions = selectedAccount
-    ? transactionResults[selectedAccount.id]?.transactions ?? []
+    ? (transactionResults[selectedAccount.id]?.transactions ?? [])
     : [];
   const accountActivity =
-    selectedAccount &&
-    selectedActivity?.accountId === selectedAccount.id
+    selectedAccount && selectedActivity?.accountId === selectedAccount.id
       ? selectedActivity
       : null;
 
@@ -118,7 +124,7 @@ export function AdminDashboard({
           });
           showToast(message, "error");
         }
-      })
+      });
     return () => controller.abort();
   }, [selectedAccountId, showToast]);
 
@@ -149,7 +155,9 @@ export function AdminDashboard({
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         const message =
-          error instanceof Error ? error.message : "Could not load transactions.";
+          error instanceof Error
+            ? error.message
+            : "Could not load transactions.";
         setTransactionResults((current) => ({
           ...current,
           [transactionScope]: { transactions: [], error: message },
@@ -158,7 +166,10 @@ export function AdminDashboard({
     return () => controller.abort();
   }, [transactionResults, transactionScope]);
 
-  async function changeStatus(accountId: string, status: "active" | "disabled") {
+  async function changeStatus(
+    accountId: string,
+    status: "active" | "disabled",
+  ) {
     setWorkingId(accountId);
     try {
       const response = await fetch(`/api/admin/accounts/${accountId}`, {
@@ -181,9 +192,7 @@ export function AdminDashboard({
           current.activeAccounts +
           (updatedAccount.status === "active" ? 1 : -1),
         accounts: current.accounts.map((entry) =>
-          entry.id === accountId
-            ? { ...entry, ...updatedAccount }
-            : entry,
+          entry.id === accountId ? { ...entry, ...updatedAccount } : entry,
         ),
         activity: [
           {
@@ -254,12 +263,17 @@ export function AdminDashboard({
             sales.currencySymbol === removedAccount?.currencySymbol
               ? {
                   ...sales,
-                  total: Math.max(0, sales.total - (removedAccount?.salesTotal ?? 0)),
+                  total: Math.max(
+                    0,
+                    sales.total - (removedAccount?.salesTotal ?? 0),
+                  ),
                 }
               : sales,
           )
           .filter((sales) => sales.total > 0),
-        accounts: current.accounts.filter((account) => account.id !== accountId),
+        accounts: current.accounts.filter(
+          (account) => account.id !== accountId,
+        ),
         activity: [deletedEvent, ...current.activity],
       }));
       setTransactionResults((current) =>
@@ -319,18 +333,30 @@ export function AdminDashboard({
       {tab === "overview" && (
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <Stat label="Active workspaces" value={String(data.activeAccounts)} />
+            <Stat
+              label="Active workspaces"
+              value={String(data.activeAccounts)}
+            />
             <Stat label="Users + demo" value={String(data.accounts.length)} />
-            <Stat label="Completed transactions" value={String(data.transactionCount)} />
+            <Stat
+              label="Completed transactions"
+              value={String(data.transactionCount)}
+            />
             <div className="rounded-xl border border-border bg-surface p-4">
-              <p className="text-xs font-medium text-muted-fg">Sales by currency</p>
+              <p className="text-xs font-medium text-muted-fg">
+                Sales by currency
+              </p>
               <div className="mt-2 space-y-1">
                 {data.salesByCurrency.length === 0 ? (
-                  <p className="text-xl font-bold text-fg">—</p>
+                  <p className="text-xl font-bold text-fg">-</p>
                 ) : (
                   data.salesByCurrency.map((sales) => (
-                    <p className="text-lg font-bold text-fg" key={sales.currencySymbol}>
-                      {sales.currencySymbol}{sales.total.toFixed(2)}
+                    <p
+                      className="text-lg font-bold text-fg"
+                      key={sales.currencySymbol}
+                    >
+                      {sales.currencySymbol}
+                      {sales.total.toFixed(2)}
                     </p>
                   ))
                 )}
@@ -376,7 +402,8 @@ export function AdminDashboard({
               <div>
                 <h2 className="font-semibold text-fg">All workspaces</h2>
                 <p className="text-sm text-muted-fg">
-                  Select a workspace to see its transactions and activity history.
+                  Select a workspace to see its transactions and activity
+                  history.
                 </p>
               </div>
               <input
@@ -387,7 +414,10 @@ export function AdminDashboard({
                 value={search}
               />
             </div>
-            <nav aria-label="Filter users" className="mb-3 flex flex-wrap gap-2">
+            <nav
+              aria-label="Filter users"
+              className="mb-3 flex flex-wrap gap-2"
+            >
               {ACCOUNT_FILTERS.map((filter) => (
                 <button
                   aria-pressed={accountFilter === filter.id}
@@ -416,19 +446,23 @@ export function AdminDashboard({
                   account.status === "active" ? "disabled" : "active",
                 )
               }
-              onDelete={(account) => void deleteAccount(account.id, account.email)}
+              onDelete={(account) =>
+                void deleteAccount(account.id, account.email)
+              }
               workingId={workingId}
             />
           </section>
           {selectedAccount && (
             <section className="space-y-4 rounded-xl border border-border bg-surface p-4 md:p-5">
               <div>
-                <h2 className="text-lg font-semibold text-fg">{selectedAccount.email}</h2>
+                <h2 className="text-lg font-semibold text-fg">
+                  {selectedAccount.email}
+                </h2>
                 <p className="text-sm text-muted-fg">
-                  Created {new Date(selectedAccount.createdAt).toLocaleString()} ·
-                  Last sign-in{" "}
+                  Created {formatDateTime(selectedAccount.createdAt)} · Last
+                  sign-in{" "}
                   {selectedAccount.lastLoginAt
-                    ? new Date(selectedAccount.lastLoginAt).toLocaleString()
+                    ? formatDateTime(selectedAccount.lastLoginAt)
                     : "never"}
                 </p>
               </div>
@@ -437,8 +471,14 @@ export function AdminDashboard({
                   label="Sales"
                   value={`${selectedAccount.currencySymbol}${selectedAccount.salesTotal.toFixed(2)}`}
                 />
-                <Stat label="Transactions" value={String(selectedAccount.transactionCount)} />
-                <Stat label="Voided" value={String(selectedAccount.voidedCount)} />
+                <Stat
+                  label="Transactions"
+                  value={String(selectedAccount.transactionCount)}
+                />
+                <Stat
+                  label="Voided"
+                  value={String(selectedAccount.voidedCount)}
+                />
                 <Stat label="Status" value={selectedAccount.status} />
               </div>
               <SalesTrendChart
@@ -448,8 +488,15 @@ export function AdminDashboard({
               <div>
                 <h3 className="mb-3 font-semibold text-fg">Transactions</h3>
                 {!transactionResults[selectedAccount.id] ? (
-                  <p aria-live="polite" className="flex items-center gap-2 text-sm text-muted-fg">
-                    <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
+                  <p
+                    aria-live="polite"
+                    className="flex items-center gap-2 text-sm text-muted-fg"
+                  >
+                    <LoaderCircle
+                      aria-hidden="true"
+                      className="animate-spin"
+                      size={16}
+                    />
                     Loading transactions…
                   </p>
                 ) : transactionResults[selectedAccount.id].error ? (
@@ -466,12 +513,21 @@ export function AdminDashboard({
               <div>
                 <h3 className="mb-3 font-semibold text-fg">History</h3>
                 {!accountActivity ? (
-                  <p aria-live="polite" className="flex items-center gap-2 text-sm text-muted-fg">
-                    <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
+                  <p
+                    aria-live="polite"
+                    className="flex items-center gap-2 text-sm text-muted-fg"
+                  >
+                    <LoaderCircle
+                      aria-hidden="true"
+                      className="animate-spin"
+                      size={16}
+                    />
                     Loading account history…
                   </p>
                 ) : accountActivity.error ? (
-                  <p className="text-sm text-red-700">{accountActivity.error}</p>
+                  <p className="text-sm text-red-700">
+                    {accountActivity.error}
+                  </p>
                 ) : (
                   <DashboardActivity
                     activity={accountActivity.events}
@@ -489,16 +545,26 @@ export function AdminDashboard({
           <div className="mb-3">
             <h2 className="font-semibold text-fg">All transactions</h2>
             <p className="text-sm text-muted-fg">
-              Includes voided receipts; sales totals exclude voided transactions.
+              Includes voided receipts; sales totals exclude voided
+              transactions.
             </p>
           </div>
           {!transactionResults.all ? (
-            <p aria-live="polite" className="flex items-center gap-2 text-sm text-muted-fg">
-              <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
+            <p
+              aria-live="polite"
+              className="flex items-center gap-2 text-sm text-muted-fg"
+            >
+              <LoaderCircle
+                aria-hidden="true"
+                className="animate-spin"
+                size={16}
+              />
               Loading transactions…
             </p>
           ) : transactionResults.all.error ? (
-            <p className="text-sm text-red-700">{transactionResults.all.error}</p>
+            <p className="text-sm text-red-700">
+              {transactionResults.all.error}
+            </p>
           ) : (
             <AdminTransactionTable
               transactions={transactionResults.all.transactions}
@@ -512,7 +578,8 @@ export function AdminDashboard({
           <div className="mb-3">
             <h2 className="font-semibold text-fg">Account history</h2>
             <p className="text-sm text-muted-fg">
-              Account creation, successful sign-ins, account status changes, and transactions.
+              Account creation, successful sign-ins, account status changes, and
+              transactions.
             </p>
           </div>
           <DashboardActivity activity={data.activity} adminView />
@@ -551,12 +618,26 @@ function AccountTable({
       <table className="w-full text-left text-sm">
         <thead className="bg-surface-muted text-xs uppercase tracking-wide text-muted-fg">
           <tr>
-            <th className="px-4 py-3 font-medium">Account</th>
-            <th className="px-4 py-3 font-medium">Status</th>
-            <th className="px-4 py-3 font-medium">Last sign-in</th>
-            <th className="px-4 py-3 text-right font-medium">Transactions</th>
-            <th className="px-4 py-3 text-right font-medium">Sales</th>
-            {onToggleStatus && <th className="px-4 py-3 font-medium">Actions</th>}
+            <th scope="col" className="px-4 py-3 font-medium">
+              Account
+            </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Status
+            </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Last sign-in
+            </th>
+            <th scope="col" className="px-4 py-3 text-right font-medium">
+              Transactions
+            </th>
+            <th scope="col" className="px-4 py-3 text-right font-medium">
+              Sales
+            </th>
+            {onToggleStatus && (
+              <th scope="col" className="px-4 py-3 font-medium">
+                Actions
+              </th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -579,17 +660,20 @@ function AccountTable({
                   </span>
                 )}
               </td>
-              <td className="px-4 py-3 capitalize text-muted-fg">{account.status}</td>
+              <td className="px-4 py-3 capitalize text-muted-fg">
+                {account.status}
+              </td>
               <td className="whitespace-nowrap px-4 py-3 text-muted-fg">
                 {account.lastLoginAt
-                  ? new Date(account.lastLoginAt).toLocaleDateString()
+                  ? formatDate(account.lastLoginAt)
                   : "Never"}
               </td>
               <td className="px-4 py-3 text-right text-fg">
                 {account.transactionCount}
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-fg">
-                {account.currencySymbol}{account.salesTotal.toFixed(2)}
+                {account.currencySymbol}
+                {account.salesTotal.toFixed(2)}
               </td>
               {onToggleStatus && onDelete && (
                 <td className="space-x-3 whitespace-nowrap px-4 py-3">
@@ -603,7 +687,11 @@ function AccountTable({
                         type="button"
                       >
                         {workingId === account.id && (
-                          <LoaderCircle aria-hidden="true" className="animate-spin" size={14} />
+                          <LoaderCircle
+                            aria-hidden="true"
+                            className="animate-spin"
+                            size={14}
+                          />
                         )}
                         {workingId === account.id
                           ? "Saving…"
@@ -619,13 +707,19 @@ function AccountTable({
                         type="button"
                       >
                         {workingId === account.id && (
-                          <LoaderCircle aria-hidden="true" className="animate-spin" size={14} />
+                          <LoaderCircle
+                            aria-hidden="true"
+                            className="animate-spin"
+                            size={14}
+                          />
                         )}
                         Delete
                       </button>
                     </>
                   ) : (
-                    <span className="text-xs text-muted-fg">Permanent demo</span>
+                    <span className="text-xs text-muted-fg">
+                      Permanent demo
+                    </span>
                   )}
                 </td>
               )}
@@ -659,12 +753,24 @@ function AdminTransactionTable({
       <table className="w-full text-left text-sm">
         <thead className="bg-surface-muted text-xs uppercase tracking-wide text-muted-fg">
           <tr>
-            <th className="px-4 py-3 font-medium">Receipt</th>
-            <th className="px-4 py-3 font-medium">Workspace</th>
-            <th className="px-4 py-3 font-medium">Date</th>
-            <th className="px-4 py-3 font-medium">Items</th>
-            <th className="px-4 py-3 font-medium">Payment</th>
-            <th className="px-4 py-3 text-right font-medium">Total</th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Receipt
+            </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Workspace
+            </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Date
+            </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Items
+            </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Payment
+            </th>
+            <th scope="col" className="px-4 py-3 text-right font-medium">
+              Total
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -673,21 +779,28 @@ function AdminTransactionTable({
               <td className="whitespace-nowrap px-4 py-3 font-semibold text-fg">
                 #{transaction.number}
                 {transaction.voided && (
-                  <span className="ml-2 text-xs font-medium text-red-600">Voided</span>
+                  <span className="ml-2 text-xs font-medium text-red-600">
+                    Voided
+                  </span>
                 )}
               </td>
-              <td className="px-4 py-3 text-muted-fg">{transaction.accountEmail}</td>
+              <td className="px-4 py-3 text-muted-fg">
+                {transaction.accountEmail}
+              </td>
               <td className="whitespace-nowrap px-4 py-3 text-muted-fg">
-                {new Date(transaction.createdAt).toLocaleString()}
+                {formatDateTime(transaction.createdAt)}
               </td>
               <td className="px-4 py-3 text-muted-fg">
-                {transaction.items.map((item) => `${item.name} × ${item.quantity}`).join(", ")}
+                {transaction.items
+                  .map((item) => `${item.name} × ${item.quantity}`)
+                  .join(", ")}
               </td>
               <td className="px-4 py-3 capitalize text-muted-fg">
                 {transaction.paymentMethod}
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-fg">
-                {transaction.currencySymbol}{transaction.total.toFixed(2)}
+                {transaction.currencySymbol}
+                {transaction.total.toFixed(2)}
               </td>
             </tr>
           ))}

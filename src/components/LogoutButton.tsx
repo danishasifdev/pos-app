@@ -31,13 +31,14 @@ export function LogoutButton() {
   return (
     <div>
       <button
-        className="flex w-full items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-fg hover:bg-surface-muted hover:text-fg disabled:opacity-50 md:justify-start"
+        aria-label="Sign out"
+        className="flex w-full items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-fg hover:bg-surface-muted hover:text-fg disabled:opacity-50 lg:justify-start"
         disabled={submitting}
         onClick={() => void logout()}
         type="button"
       >
         <LogOut aria-hidden="true" size={18} />
-        <span className="hidden md:inline">Sign out</span>
+        <span className="hidden lg:inline">Sign out</span>
       </button>
     </div>
   );

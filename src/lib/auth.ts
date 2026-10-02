@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { isAccountSessionActive } from "./db";
 import { UserRole } from "./types";
 
@@ -83,11 +84,13 @@ export function readSessionToken(token: string | undefined): SessionUser | null 
   }
 }
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
+// wrapped in cache() because the layout and the page both need the session;
+// without it each caller re-runs the session-activity write transaction
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const cookieStore = await cookies();
   const session = readSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
   if (session) {
     if (await isAccountSessionActive(session.id, session.role)) return session;
   }
   return null;
-}
+});

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Receipt } from "@/lib/types";
 import { UserDashboardData } from "@/lib/types";
+import { formatDateTime } from "@/lib/format";
 import { DashboardActivity } from "./DashboardActivity";
 import { SalesTrendChart } from "./SalesTrendChart";
 
@@ -189,11 +190,11 @@ function TransactionTable({
       <table className="w-full text-left text-sm">
         <thead className="bg-surface-muted text-xs uppercase tracking-wide text-muted-fg">
           <tr>
-            <th className="px-4 py-3 font-medium">Receipt</th>
-            <th className="px-4 py-3 font-medium">Date</th>
-            <th className="px-4 py-3 font-medium">Items</th>
-            <th className="px-4 py-3 font-medium">Payment</th>
-            <th className="px-4 py-3 text-right font-medium">Total</th>
+            <th scope="col" className="px-4 py-3 font-medium">Receipt</th>
+            <th scope="col" className="px-4 py-3 font-medium">Date</th>
+            <th scope="col" className="px-4 py-3 font-medium">Items</th>
+            <th scope="col" className="px-4 py-3 font-medium">Payment</th>
+            <th scope="col" className="px-4 py-3 text-right font-medium">Total</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -208,7 +209,7 @@ function TransactionTable({
                 )}
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-muted-fg">
-                {new Date(receipt.createdAt).toLocaleString()}
+                {formatDateTime(receipt.createdAt)}
               </td>
               <td className="px-4 py-3 text-muted-fg">
                 {receipt.items.map((item) => `${item.name} × ${item.quantity}`).join(", ")}

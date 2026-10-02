@@ -699,6 +699,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     activityRows,
     salesByCurrency,
     accountDailyRows,
+    accountMetrics,
   ] =
     await Promise.all([
       listAccounts(),
@@ -714,28 +715,28 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         ORDER BY settings.currency_symbol
       `,
       getAdminAccountDailySales(sql),
+      sql<{
+        id: string;
+        currencySymbol: string;
+        salesTotal: number;
+        transactionCount: number;
+        voidedCount: number;
+        lastTransactionAt: Date | null;
+      }[]>`
+        SELECT
+          users.id,
+          settings.currency_symbol AS "currencySymbol",
+          COALESCE(SUM(receipts.total) FILTER (WHERE NOT receipts.voided), 0)::float8 AS "salesTotal",
+          COUNT(receipts.id) FILTER (WHERE NOT receipts.voided)::int AS "transactionCount",
+          COUNT(receipts.id) FILTER (WHERE receipts.voided)::int AS "voidedCount",
+          MAX(receipts.created_at) AS "lastTransactionAt"
+        FROM users
+        LEFT JOIN receipts ON receipts.account_id = users.id
+        LEFT JOIN settings ON settings.account_id = users.id AND settings.id = 1
+        WHERE users.role IN ('user', 'demo')
+        GROUP BY users.id, settings.currency_symbol
+      `,
     ]);
-  const accountMetrics = await sql<{
-    id: string;
-    currencySymbol: string;
-    salesTotal: number;
-    transactionCount: number;
-    voidedCount: number;
-    lastTransactionAt: Date | null;
-  }[]>`
-    SELECT
-      users.id,
-      settings.currency_symbol AS "currencySymbol",
-      COALESCE(SUM(receipts.total) FILTER (WHERE NOT receipts.voided), 0)::float8 AS "salesTotal",
-      COUNT(receipts.id) FILTER (WHERE NOT receipts.voided)::int AS "transactionCount",
-      COUNT(receipts.id) FILTER (WHERE receipts.voided)::int AS "voidedCount",
-      MAX(receipts.created_at) AS "lastTransactionAt"
-    FROM users
-    LEFT JOIN receipts ON receipts.account_id = users.id
-    LEFT JOIN settings ON settings.account_id = users.id AND settings.id = 1
-    WHERE users.role IN ('user', 'demo')
-    GROUP BY users.id, settings.currency_symbol
-  `;
   const metricById = new Map(accountMetrics.map((metric) => [metric.id, metric]));
   const dailySalesByAccount = new Map<string, DailySales[]>();
   for (const row of accountDailyRows) {

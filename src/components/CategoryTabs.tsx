@@ -1,6 +1,7 @@
 "use client";
 
 import { Category } from "@/lib/types";
+import { readableTextColor } from "@/lib/color";
 
 export function CategoryTabs({
   categories,
@@ -12,7 +13,7 @@ export function CategoryTabs({
   onChange: (id: string | "all") => void;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto px-4 pb-1 pt-4 md:px-6">
+    <div className="flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 pt-4 md:px-6">
       <TabButton
         label="All items"
         selected={active === "all"}
@@ -47,17 +48,20 @@ function TabButton({
 }) {
   return (
     <button
+      aria-pressed={selected}
       onClick={onClick}
-      className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
+      type="button"
+      className={`flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
         selected
-          ? "border-transparent text-white shadow-sm"
+          ? "border-transparent shadow-sm"
           : "border-border bg-surface text-fg hover:bg-surface-muted"
       }`}
-      style={selected ? { backgroundColor: color } : undefined}
+      style={selected ? { backgroundColor: color, color: readableTextColor(color) } : undefined}
     >
       <span
-        className="h-2 w-2 rounded-full"
-        style={{ backgroundColor: selected ? "rgba(255,255,255,0.85)" : color }}
+        aria-hidden="true"
+        className={`h-2 w-2 rounded-full ${selected ? "bg-current opacity-75" : ""}`}
+        style={selected ? undefined : { backgroundColor: color }}
       />
       {label}
     </button>

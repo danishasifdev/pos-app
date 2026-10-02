@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Printer, Ban, LoaderCircle } from "lucide-react";
 import { Receipt, StoreSettings } from "@/lib/types";
+import { formatDateTime } from "@/lib/format";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { ReceiptPrintable } from "./ReceiptPrintable";
 import { useToast } from "./ToastProvider";
@@ -67,7 +68,7 @@ export function ReceiptDetail({
             Receipt #{current.number}
           </h1>
           <p className="mb-4 text-sm text-muted-fg">
-            {new Date(current.createdAt).toLocaleString()} · {current.cashier}
+            {formatDateTime(current.createdAt)} · {current.cashier}
           </p>
 
           <ul className="mb-4 divide-y divide-border">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { Search, CheckCircle2, Printer } from "lucide-react";
 import { Category, Product, Receipt, StoreSettings } from "@/lib/types";
 import { CategoryTabs } from "./CategoryTabs";
@@ -9,6 +9,7 @@ import { Cart } from "./Cart";
 import { PaymentModal, PaymentMethod } from "./PaymentModal";
 import { ReceiptPrintable } from "./ReceiptPrintable";
 import { useToast } from "./ToastProvider";
+import { useModal } from "./useModal";
 
 export type CartLine = { product: Product; quantity: number };
 
@@ -149,7 +150,8 @@ export function PosTerminal({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col md:flex-row">
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <h1 className="sr-only">Point of sale terminal</h1>
         <CategoryTabs
           categories={categories}
           active={activeCategory}
@@ -158,18 +160,21 @@ export function PosTerminal({
         <div className="px-4 pt-3 md:px-6">
           <div className="relative">
             <Search
+              aria-hidden="true"
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg"
             />
             <input
+              aria-label="Search products"
+              type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search products…"
-              className="w-full rounded-lg border border-border bg-surface py-2 pl-9 pr-3 text-sm text-fg outline-none focus:border-primary"
+              className="w-full rounded-lg border border-border bg-surface py-2.5 pl-9 pr-3 text-sm text-fg shadow-sm outline-none transition-colors placeholder:text-muted-fg focus:border-primary"
             />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <ProductGrid
             products={filteredProducts}
             currencySymbol={settings.currencySymbol}
@@ -178,7 +183,7 @@ export function PosTerminal({
         </div>
       </div>
 
-      <div className="h-[45vh] w-full shrink-0 md:h-auto md:w-96">
+      <div className="h-[45vh] w-full shrink-0 md:h-auto md:w-72 lg:w-96">
         <Cart
           lines={lines}
           currencySymbol={settings.currencySymbol}
@@ -223,6 +228,9 @@ function ReceiptSuccessModal({
   onClose: () => void;
 }) {
   const { showToast } = useToast();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useModal(dialogRef, onClose);
 
   function printReceipt() {
     try {
@@ -238,13 +246,24 @@ function ReceiptSuccessModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-surface shadow-xl"
+        aria-labelledby={titleId}
+        aria-modal="true"
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+        className="flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-surface shadow-xl focus:outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-          <CheckCircle2 size={20} className="text-emerald-500" />
+          <CheckCircle2
+            aria-hidden="true"
+            size={20}
+            className="text-emerald-500"
+          />
           <div>
-            <p className="text-sm font-semibold text-fg">Payment complete</p>
+            <p className="text-sm font-semibold text-fg" id={titleId}>
+              Payment complete
+            </p>
             <p className="text-xs text-muted-fg">
               Receipt #{receipt.number} saved
             </p>
@@ -256,15 +275,17 @@ function ReceiptSuccessModal({
         <div className="flex gap-2 border-t border-border p-4">
           <button
             onClick={onClose}
+            type="button"
             className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-fg hover:bg-surface-muted"
           >
             Close
           </button>
           <button
             onClick={printReceipt}
+            type="button"
             className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
-            <Printer size={16} />
+            <Printer aria-hidden="true" size={16} />
             Print
           </button>
         </div>

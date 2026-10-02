@@ -1,4 +1,5 @@
 import { AccountActivity } from "@/lib/types";
+import { formatDateTime } from "@/lib/format";
 
 const EVENT_LABELS: Record<AccountActivity["eventType"], string> = {
   account_created: "Account created",
@@ -40,7 +41,7 @@ export function DashboardActivity({
                 {adminView && `${event.accountEmail} · `}
                 {event.actorEmail !== event.accountEmail &&
                   `by ${event.actorEmail} · `}
-                {new Date(event.createdAt).toLocaleString()}
+                {formatDateTime(event.createdAt)}
               </p>
             </div>
             {typeof event.details.total === "number" && (

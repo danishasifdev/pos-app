@@ -15,7 +15,7 @@ export function DashboardUnavailable({ admin = false }: { admin?: boolean }) {
           in Supabase SQL Editor, then refresh this page.
         </p>
         <div className="mt-4 flex flex-wrap gap-4 text-sm font-semibold">
-          <Link className="underline" href="/api/health" target="_blank">
+          <Link className="underline" href="/api/health" rel="noopener noreferrer" target="_blank">
             Check database status
           </Link>
           <Link className="underline" href={admin ? "/admin" : "/dashboard"}>

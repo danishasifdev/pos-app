@@ -1,61 +1,51 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/ToastProvider";
-import { getSettings } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getSettings } from "@/lib/db";
+import { DEFAULT_THEME } from "@/lib/themes";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
-  title: "Mall POS",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Mall POS",
+    template: "%s · Mall POS",
+  },
   description: "Point of sale terminal for retail kiosks and mall stores",
+  applicationName: "Mall POS",
+  openGraph: {
+    type: "website",
+    siteName: "Mall POS",
+    title: "Mall POS",
+    description: "Point of sale terminal for retail kiosks and mall stores",
+    url: SITE_URL,
+  },
 };
 
-export const dynamic = "force-dynamic";
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0b" },
+  ],
+};
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // getCurrentUser is wrapped in cache(), so the authenticated shell layout
+  // and the page below it reuse this call instead of re-querying.
   const user = await getCurrentUser();
-  if (!user) {
-    return (
-      <html lang="en" className="h-full antialiased">
-        <body className="flex h-full min-h-screen">
-          <ToastProvider>{children}</ToastProvider>
-        </body>
-      </html>
-    );
-  }
   const settings =
-    user.role === "admin"
-      ? null
-      : await getSettings(user.id);
+    user && user.role !== "admin" ? await getSettings(user.id) : null;
 
   return (
-    <html lang="en" data-theme={settings?.theme ?? "slate"} className="h-full antialiased">
+    <html lang="en" data-theme={settings?.theme ?? DEFAULT_THEME} className="h-full antialiased">
       <body className="flex h-full min-h-screen">
-        <ToastProvider>
-          <ThemeProvider initialTheme={settings?.theme ?? "slate"}>
-            <Sidebar user={user} />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 md:px-6">
-                <div>
-                  <h1 className="text-sm font-semibold text-fg">
-                    {settings?.storeName ?? "Mall POS Admin"}
-                  </h1>
-                  <p className="text-xs text-muted-fg">
-                    {settings?.address ?? user.email}
-                  </p>
-                </div>
-                {settings && <ThemeSwitcher />}
-              </header>
-              <main className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</main>
-            </div>
-          </ThemeProvider>
-        </ToastProvider>
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

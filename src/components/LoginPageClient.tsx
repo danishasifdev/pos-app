@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AccountForm } from "@/components/AccountForm";
+import { AuthShell } from "@/components/AuthShell";
 import { useToast } from "@/components/ToastProvider";
 
 export function LoginPageClient({
@@ -36,66 +37,60 @@ export function LoginPageClient({
   }
 
   return (
-    <main className="flex min-h-full flex-1 items-center justify-center bg-bg p-6">
-      <section className="w-full max-w-sm rounded-2xl border border-border bg-surface p-8 shadow-sm">
-        <p className="text-sm text-center font-semibold uppercase tracking-widest text-primary">
-          Mall POS
-        </p>
-        <h1 className="mt-2 text-2xl font-bold text-fg">
-          {adminLogin ? "Administrator sign in" : "Sign in"}
-        </h1>
-        <p className="mb-7 mt-2 text-sm text-muted-fg">
-          {adminLogin
-            ? "Sign in with the administrator account."
-            : "Sign in to access your private POS workspace."}
-        </p>
-        <AccountForm
-          expectedRole={adminLogin ? "admin" : undefined}
-          mode="login"
-        />
-        {demoMode && !adminLogin && (
-          <div className="mt-5 border-t border-border pt-5 text-center">
-            <p className="mb-3 text-xs text-muted-fg">
-              Explore the sample workspace without creating an account.
-            </p>
-            <button
-              className="inline-flex rounded-full border border-border bg-accent-soft px-4 py-2 text-sm font-semibold text-fg hover:opacity-80"
-              onClick={() => void continueAsDemo()}
-              type="button"
-            >
-              Continue with demo account to log in
-            </button>
-          </div>
-        )}
-        <div className="mt-5 flex flex-col items-center gap-2 text-center text-sm">
-          {adminLogin ? (
-            <Link
-              className="font-semibold text-primary underline"
-              href="/login"
-            >
-              Back to user sign in
-            </Link>
-          ) : (
-            <>
-              <p className="text-muted-fg">
-                New here?{" "}
-                <Link
-                  className="font-semibold text-primary underline"
-                  href="/register"
-                >
-                  Create an account
-                </Link>
-              </p>
+    <AuthShell
+      title={adminLogin ? "Administrator sign in" : "Sign in"}
+      description={
+        adminLogin
+          ? "Sign in with the administrator account."
+          : "Sign in to access your private POS workspace."
+      }
+      footer={
+        adminLogin ? (
+          <Link
+            className="font-semibold text-primary hover:underline"
+            href="/login"
+          >
+            Back to user sign in
+          </Link>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <p>
+              New here?{" "}
               <Link
-                className="font-semibold text-primary underline"
-                href="/admin/login"
+                className="font-semibold text-primary hover:underline"
+                href="/register"
               >
-                Admin login
+                Create an account
               </Link>
-            </>
-          )}
+            </p>
+            <Link
+              className="text-xs text-muted-fg hover:text-fg hover:underline"
+              href="/admin/login"
+            >
+              Admin sign in
+            </Link>
+          </div>
+        )
+      }
+    >
+      <AccountForm
+        expectedRole={adminLogin ? "admin" : undefined}
+        mode="login"
+      />
+      {demoMode && !adminLogin && (
+        <div className="mt-6 border-t border-border pt-5 text-center">
+          <button
+            className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-fg transition-colors hover:bg-surface-muted"
+            onClick={() => void continueAsDemo()}
+            type="button"
+          >
+            Try the demo workspace
+          </button>
+          <p className="mt-2 text-xs text-muted-fg">
+            No account needed - sample products and receipts.
+          </p>
         </div>
-      </section>
-    </main>
+      )}
+    </AuthShell>
   );
 }

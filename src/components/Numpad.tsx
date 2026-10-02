@@ -11,9 +11,11 @@ export function Numpad({ onKey }: { onKey: (key: string) => void }) {
         <button
           key={key}
           onClick={() => onKey(key)}
+          type="button"
+          aria-label={key === "back" ? "Delete last digit" : key}
           className="flex h-12 items-center justify-center rounded-lg border border-border bg-surface text-lg font-medium text-fg hover:bg-surface-muted active:bg-accent-soft"
         >
-          {key === "back" ? <Delete size={18} /> : key}
+          {key === "back" ? <Delete aria-hidden="true" size={18} /> : key}
         </button>
       ))}
     </div>

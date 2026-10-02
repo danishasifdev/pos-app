@@ -43,7 +43,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div
         aria-label="Notifications"
         aria-live="polite"
-        className="pointer-events-none fixed right-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-[min(24rem,calc(100vw-2rem))] overflow-y-auto"
+        role="region"
+        className="pointer-events-none fixed right-4 top-4 z-50 grid max-h-[calc(100vh-2rem)] w-[min(24rem,calc(100vw-2rem))]"
         style={{ paddingBottom: `${Math.max(0, toasts.length - 1) * 14}px` }}
       >
         {toasts.map((toast, index) => (
@@ -60,12 +61,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             role={toast.tone === "error" ? "alert" : "status"}
             style={{
               gridArea: "1 / 1",
-              transform: `translate(${index * 5}px, ${index * 14}px) scale(${Math.max(0.94, 1 - index * 0.015)})`,
+              transform: `translateY(${index * 14}px) scale(${Math.max(0.94, 1 - index * 0.015)})`,
               zIndex: toasts.length - index,
               pointerEvents: index === 0 ? "auto" : "none",
             }}
           >
-            <p className="min-w-0 flex-1 text-sm font-medium">{toast.message}</p>
+            <p className="min-w-0 flex-1 text-sm font-medium">
+              {toast.message}
+            </p>
             <button
               aria-label="Dismiss notification"
               className="shrink-0 rounded p-0.5 opacity-70 hover:opacity-100"
