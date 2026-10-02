@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Printer, Ban } from "lucide-react";
+import { ArrowLeft, Printer, Ban, LoaderCircle } from "lucide-react";
 import { Receipt, StoreSettings } from "@/lib/types";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { ReceiptPrintable } from "./ReceiptPrintable";
+import { useToast } from "./ToastProvider";
 
 export function ReceiptDetail({
   receipt,
@@ -16,16 +17,16 @@ export function ReceiptDetail({
   settings: StoreSettings;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [current, setCurrent] = useState(receipt);
   const [pendingVoid, setPendingVoid] = useState(false);
   const [voiding, setVoiding] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   function printReceipt() {
     try {
       window.print();
     } catch {
-      setNotice("Printing is unavailable in this browser.");
+      showToast("Printing is unavailable in this browser.", "error");
     }
   }
 
@@ -38,10 +39,12 @@ export function ReceiptDetail({
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Could not void receipt");
       setCurrent(body);
+      showToast(`Receipt #${current.number} voided.`, "success");
       router.refresh();
     } catch (error) {
-      setNotice(
+      showToast(
         error instanceof Error ? error.message : "Could not void receipt",
+        "error",
       );
     } finally {
       setVoiding(false);
@@ -123,8 +126,12 @@ export function ReceiptDetail({
                 disabled={voiding}
                 className="flex items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
               >
-                <Ban size={16} />
-                Void
+                {voiding ? (
+                  <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
+                ) : (
+                  <Ban aria-hidden="true" size={16} />
+                )}
+                {voiding ? "Voiding…" : "Void"}
               </button>
             )}
           </div>
@@ -134,14 +141,6 @@ export function ReceiptDetail({
           <ReceiptPrintable receipt={current} settings={settings} />
         </div>
       </div>
-      {notice && (
-        <div
-          role="alert"
-          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-        >
-          {notice}
-        </div>
-      )}
       {pendingVoid && (
         <ConfirmationModal
           title="Void receipt?"

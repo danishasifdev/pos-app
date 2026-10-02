@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { Category, Product } from "@/lib/types";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { useToast } from "./ToastProvider";
 
 type Draft = {
   id?: string;
@@ -15,8 +16,6 @@ type Draft = {
   taxable: boolean;
   active: boolean;
 };
-type Notice = { message: string; tone: "success" | "error" };
-
 const EMPTY_DRAFT: Draft = {
   name: "",
   price: "",
@@ -36,18 +35,11 @@ export function ProductsManager({
   categories: Category[];
   currencySymbol: string;
 }) {
+  const { showToast } = useToast();
   const [products, setProducts] = useState(initialProducts);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<Notice | null>(null);
-
-  useEffect(() => {
-    if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(null), 3000);
-    return () => window.clearTimeout(timeout);
-  }, [notice]);
-
   function openNew() {
     setDraft({ ...EMPTY_DRAFT, categoryId: categories[0]?.id ?? "" });
   }
@@ -101,12 +93,12 @@ export function ProductsManager({
         setProducts((prev) => [...prev, created]);
       }
       setDraft(null);
-      setNotice({ message: "Product saved", tone: "success" });
+      showToast("Product saved", "success");
     } catch (e) {
-      setNotice({
-        message: e instanceof Error ? e.message : "Could not save product",
-        tone: "error",
-      });
+      showToast(
+        e instanceof Error ? e.message : "Could not save product",
+        "error",
+      );
     } finally {
       setSaving(false);
     }
@@ -118,12 +110,12 @@ export function ProductsManager({
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Could not delete product");
       setProducts((prev) => prev.filter((p) => p.id !== id));
-      setNotice({ message: "Product deleted", tone: "success" });
+      showToast("Product deleted", "success");
     } catch (e) {
-      setNotice({
-        message: e instanceof Error ? e.message : "Could not delete product",
-        tone: "error",
-      });
+      showToast(
+        e instanceof Error ? e.message : "Could not delete product",
+        "error",
+      );
     }
   }
 
@@ -138,12 +130,12 @@ export function ProductsManager({
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Could not update product");
       setProducts((prev) => prev.map((x) => (x.id === p.id ? body : x)));
-      setNotice({ message: "Product updated", tone: "success" });
+      showToast("Product updated", "success");
     } catch (e) {
-      setNotice({
-        message: e instanceof Error ? e.message : "Could not update product",
-        tone: "error",
-      });
+      showToast(
+        e instanceof Error ? e.message : "Could not update product",
+        "error",
+      );
     }
   }
 
@@ -164,20 +156,6 @@ export function ProductsManager({
           Add product
         </button>
       </div>
-
-      {notice && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
-            notice.tone === "error"
-              ? "border-red-200 bg-red-50 text-red-800"
-              : "border-emerald-200 bg-emerald-50 text-emerald-800"
-          }`}
-        >
-          {notice.message}
-        </div>
-      )}
 
       <div className="overflow-hidden rounded-xl border border-border bg-surface">
         <table className="w-full text-sm">

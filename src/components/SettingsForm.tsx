@@ -1,24 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, LoaderCircle } from "lucide-react";
 import { StoreSettings } from "@/lib/types";
 import { THEMES } from "@/lib/themes";
 import { useTheme } from "./ThemeProvider";
+import { useToast } from "./ToastProvider";
 
 export function SettingsForm({
   initialSettings,
 }: {
   initialSettings: StoreSettings;
 }) {
+  const { showToast } = useToast();
   const [settings, setSettings] = useState(initialSettings);
   const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const { theme, setTheme } = useTheme();
 
   async function save() {
+    if (saving) return;
+    setSaving(true);
     setSaved(false);
-    setSaveError(null);
     try {
       const res = await fetch("/api/settings", {
         method: "PUT",
@@ -29,10 +32,14 @@ export function SettingsForm({
       if (!res.ok) throw new Error(body.error ?? "Could not save settings");
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      showToast("Settings saved", "success");
     } catch (error) {
-      setSaveError(
+      showToast(
         error instanceof Error ? error.message : "Could not save settings",
+        "error",
       );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -136,16 +143,12 @@ export function SettingsForm({
 
       <button
         onClick={save}
-        className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+        disabled={saving}
       >
-        {saved ? "Saved ✓" : "Save changes"}
+        {saving && <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />}
+        {saving ? "Saving…" : saved ? "Saved ✓" : "Save changes"}
       </button>
-      {saveError && (
-        <p role="alert" className="mt-3 text-sm text-red-700">
-          {saveError}
-        </p>
-      )}
-
       <style jsx global>{`
         .input {
           width: 100%;

@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addProduct, getProducts } from "@/lib/db";
+import { addProduct, getCategories, getProducts } from "@/lib/db";
 import { randomUUID } from "crypto";
 import { MAX_SAVED_RECORDS } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth";
+import { noStoreApiResponse, privateApiResponse } from "@/lib/api-response";
 
 export async function GET() {
-  return NextResponse.json(getProducts());
+  const user = await getCurrentUser();
+  if (!user || user.role === "admin") {
+    return noStoreApiResponse({ error: "Unauthorized" }, 401);
+  }
+  return privateApiResponse(await getProducts(user.id));
 }
 
 export async function POST(req: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user || user.role === "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -29,7 +39,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (getProducts().length >= MAX_SAVED_RECORDS) {
+  if ((await getProducts(user.id)).length >= MAX_SAVED_RECORDS) {
     return NextResponse.json(
       {
         error: `Product limit reached. Delete a product to add another (maximum ${MAX_SAVED_RECORDS}).`,
@@ -38,12 +48,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const product = addProduct({
+  const categories = await getCategories(user.id);
+  if (!categories.length) {
+    return NextResponse.json(
+      { error: "Create a category before adding products." },
+      { status: 409 },
+    );
+  }
+  const product = await addProduct(user.id, {
     id: `p-${randomUUID()}`,
     name: body.name.trim(),
     price: body.price,
     categoryId:
-      typeof body.categoryId === "string" ? body.categoryId : "cat-snacks",
+      typeof body.categoryId === "string"
+        ? body.categoryId
+        : categories[0].id,
     emoji: typeof body.emoji === "string" ? body.emoji : "🛍️",
     sku: typeof body.sku === "string" ? body.sku : "",
     taxable: typeof body.taxable === "boolean" ? body.taxable : true,

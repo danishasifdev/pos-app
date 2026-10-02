@@ -28,16 +28,22 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:3000. Sample products and categories are seeded
-automatically on first run — no database setup required.
+Before starting the app, set `DATABASE_URL` in `.env.local` and run the SQL
+migrations in Supabase. See **[SETUP.md](./SETUP.md)** for the exact steps.
+They add the demo data, private workspaces, the demo account email, and
+activity history for dashboards.
 
-See **[SETUP.md](./SETUP.md)** for how the built-in database works and how
-to upgrade to Postgres/Prisma or SQLite when you're ready for production.
+Then open http://localhost:3000.
+
+This is a public portfolio demo with no sign-in. Anyone can change its
+products, settings, and receipts. Use only disposable demo data; never connect
+it to a production database or store real customer information.
+Visitors can create isolated accounts with separate products, settings, and
+receipts. The demo workspace remains available permanently.
 
 ## Tech stack
 
 - Next.js 16 (App Router, Turbopack)
 - Tailwind CSS v4 (CSS-variable based theme system)
 - TypeScript
-- A dependency-free JSON file database (see SETUP.md) — no external DB, no
-  native modules, works immediately after `npm install`
+- Supabase Postgres accessed through its transaction pooler for Vercel
