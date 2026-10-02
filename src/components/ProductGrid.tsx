@@ -1,7 +1,7 @@
 "use client";
 
 import { Product } from "@/lib/types";
-import { Plus } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 
 export function ProductGrid({
   products,
@@ -24,25 +24,35 @@ export function ProductGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 md:p-6">
+    <div className="grid min-w-0 grid-cols-2 gap-3 p-4 lg:grid-cols-4 xl:grid-cols-5 md:p-6">
       {products.map((product) => (
         <button
           key={product.id}
+          type="button"
           onClick={() => onAdd(product)}
-          className="group relative flex flex-col items-start gap-2 rounded-xl border border-border bg-surface p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:translate-y-0"
+          aria-label={`Add ${product.name} for ${currencySymbol}${product.price.toFixed(2)}`}
+          className="group relative flex h-full w-full flex-col gap-2.5 overflow-hidden rounded-2xl border border-border bg-surface p-3 text-left shadow-sm outline-none transition duration-150 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.97] active:shadow-sm motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:gap-3 sm:p-3.5 items-center"
         >
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-muted text-2xl">
-            {product.emoji}
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-muted text-[26px] leading-none sm:h-14 sm:w-14 sm:text-[30px]">
+            <span aria-hidden="true">{product.emoji}</span>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-fg">{product.name}</p>
-            <p className="text-xs text-muted-fg">
-              {currencySymbol}
-              {product.price.toFixed(2)}
-            </p>
-          </div>
-          <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 transition group-hover:opacity-100">
-            <Plus size={14} />
+
+          <p className="line-clamp-2 flex-1 text-sm font-medium leading-5 text-fg">
+            {product.name}
+          </p>
+
+          <p className="text-sm font-semibold tabular-nums text-fg sm:text-base">
+            {currencySymbol}
+            {product.price.toFixed(2)}
+          </p>
+
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 flex items-center justify-center bg-primary/10 opacity-0 backdrop-blur-[1px] transition-opacity duration-150 group-focus-visible:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
+          >
+            <span className="flex h-11 w-11 scale-75 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform duration-150 group-focus-visible:scale-100 group-active:scale-90 [@media(hover:hover)]:group-hover:scale-100">
+              <ShoppingCart size={20} strokeWidth={2.25} />
+            </span>
           </span>
         </button>
       ))}

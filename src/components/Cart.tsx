@@ -33,13 +33,13 @@ export function Cart({
   const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
 
   return (
-    <div className="flex h-full w-full flex-col border-l border-border bg-surface">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+    <div className="flex h-full w-full min-w-0 flex-col border-l border-border bg-surface">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
         <div className="flex items-center gap-2">
-          <ShoppingBag size={16} className="text-muted-fg" />
+          <ShoppingBag aria-hidden="true" size={16} className="text-muted-fg" />
           <h2 className="text-sm font-semibold text-fg">Current order</h2>
           {itemCount > 0 && (
-            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-fg">
+            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium tabular-nums text-fg">
               {itemCount}
             </span>
           )}
@@ -47,18 +47,29 @@ export function Cart({
         {lines.length > 0 && (
           <button
             onClick={onClear}
-            className="text-xs font-medium text-muted-fg hover:text-fg"
+            type="button"
+            className="rounded-md px-1.5 py-1 text-xs font-medium text-muted-fg hover:bg-surface-muted hover:text-fg"
           >
             Clear
           </button>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-2">
+      <div className="flex flex-1 flex-col overflow-y-auto px-3 py-2">
         {lines.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-            <p className="text-sm font-medium text-fg">Cart is empty</p>
-            <p className="text-xs text-muted-fg">Tap a product to add it here.</p>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+            <span
+              aria-hidden="true"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-muted-fg"
+            >
+              <ShoppingBag size={22} />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-fg">No items yet</p>
+              <p className="mt-1 text-xs text-muted-fg">
+                Tap a product to start an order.
+              </p>
+            </div>
           </div>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -67,8 +78,8 @@ export function Cart({
                 key={line.product.id}
                 className="flex items-center gap-3 rounded-lg border border-border p-2"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-muted text-lg">
-                  {line.product.emoji}
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-muted text-lg leading-none">
+                  <span aria-hidden="true">{line.product.emoji}</span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-fg">{line.product.name}</p>
@@ -79,26 +90,32 @@ export function Cart({
                 </div>
                 <div className="flex items-center gap-1">
                   <button
+                    aria-label={`Decrease quantity of ${line.product.name}`}
                     onClick={() => onDecrement(line.product.id)}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-border text-fg hover:bg-surface-muted"
+                    type="button"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-fg hover:bg-surface-muted"
                   >
-                    <Minus size={12} />
+                    <Minus aria-hidden="true" size={13} />
                   </button>
-                  <span className="w-5 text-center text-sm font-medium text-fg">
+                  <span className="w-6 text-center text-sm font-semibold tabular-nums text-fg">
                     {line.quantity}
                   </span>
                   <button
+                    aria-label={`Increase quantity of ${line.product.name}`}
                     onClick={() => onIncrement(line.product.id)}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-border text-fg hover:bg-surface-muted"
+                    type="button"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-fg hover:bg-surface-muted"
                   >
-                    <Plus size={12} />
+                    <Plus aria-hidden="true" size={13} />
                   </button>
                 </div>
                 <button
+                  aria-label={`Remove ${line.product.name} from order`}
                   onClick={() => onRemove(line.product.id)}
-                  className="text-muted-fg hover:text-red-500"
+                  type="button"
+                  className="rounded-md p-1.5 text-muted-fg hover:bg-red-50 hover:text-red-600"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 aria-hidden="true" size={15} />
                 </button>
               </li>
             ))}
@@ -106,15 +123,15 @@ export function Cart({
         )}
       </div>
 
-      <div className="border-t border-border p-4">
+      <div className="border-t border-border bg-surface p-4">
         <SummaryRow label="Subtotal" value={`${currencySymbol}${subtotal.toFixed(2)}`} />
         <SummaryRow label={`Tax (${taxRate}%)`} value={`${currencySymbol}${taxTotal.toFixed(2)}`} />
         {discount > 0 && (
           <SummaryRow label="Discount" value={`-${currencySymbol}${discount.toFixed(2)}`} />
         )}
-        <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
+        <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
           <span className="text-sm font-semibold text-fg">Total</span>
-          <span className="text-lg font-bold text-fg">
+          <span className="text-xl font-bold tabular-nums text-fg">
             {currencySymbol}
             {total.toFixed(2)}
           </span>
@@ -122,7 +139,8 @@ export function Cart({
         <button
           disabled={lines.length === 0}
           onClick={onCheckout}
-          className="mt-3 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          type="button"
+          className="mt-4 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:bg-surface-muted disabled:text-muted-fg disabled:shadow-none"
         >
           Charge {currencySymbol}
           {total.toFixed(2)}
@@ -134,9 +152,9 @@ export function Cart({
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-0.5 text-sm">
+    <div className="flex items-center justify-between py-1 text-sm">
       <span className="text-muted-fg">{label}</span>
-      <span className="text-fg">{value}</span>
+      <span className="tabular-nums text-fg">{value}</span>
     </div>
   );
 }

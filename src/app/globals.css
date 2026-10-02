@@ -7,27 +7,19 @@
    (bg-primary, text-fg, border-border, etc.) so the rest of the app never
    references a hex code directly - switching themes is just switching the
    data-theme attribute on <html>.
+
+   Every --muted-fg here is tuned to clear 4.5:1 against both --bg and
+   --surface-muted, since tables, chips and helper text all use that pair.
 ------------------------------------------------------------------------- */
 
-:root {
-  --bg: #f8fafc;
-  --fg: #0f172a;
-  --surface: #ffffff;
-  --surface-muted: #f1f5f9;
-  --border: #e2e8f0;
-  --muted-fg: #64748b;
-  --primary: #475569;
-  --primary-foreground: #ffffff;
-  --accent-soft: #e2e8f0;
-}
-
+:root,
 [data-theme="slate"] {
   --bg: #f8fafc;
   --fg: #0f172a;
   --surface: #ffffff;
   --surface-muted: #f1f5f9;
   --border: #e2e8f0;
-  --muted-fg: #64748b;
+  --muted-fg: #556274;
   --primary: #475569;
   --primary-foreground: #ffffff;
   --accent-soft: #e2e8f0;
@@ -39,8 +31,8 @@
   --surface: #ffffff;
   --surface-muted: #eaf6f0;
   --border: #d3ece1;
-  --muted-fg: #4b7768;
-  --primary: #059669;
+  --muted-fg: #3f6a5b;
+  --primary: #047857;
   --primary-foreground: #ffffff;
   --accent-soft: #d1fae5;
 }
@@ -51,8 +43,8 @@
   --surface: #ffffff;
   --surface-muted: #edecfc;
   --border: #dcdaf7;
-  --muted-fg: #5b57a8;
-  --primary: #4f46e5;
+  --muted-fg: #54509c;
+  --primary: #4338ca;
   --primary-foreground: #ffffff;
   --accent-soft: #e0e7ff;
 }
@@ -63,8 +55,8 @@
   --surface: #ffffff;
   --surface-muted: #fce9ed;
   --border: #f8d4dc;
-  --muted-fg: #9f5468;
-  --primary: #e11d48;
+  --muted-fg: #93435a;
+  --primary: #be123c;
   --primary-foreground: #ffffff;
   --accent-soft: #ffe4e9;
 }
@@ -75,22 +67,23 @@
   --surface: #ffffff;
   --surface-muted: #fbf1de;
   --border: #f3e2bf;
-  --muted-fg: #92703c;
-  --primary: #d97706;
+  --muted-fg: #7d5f2c;
+  --primary: #a85607;
   --primary-foreground: #ffffff;
   --accent-soft: #fef3c7;
 }
 
+/* Midnight: neutral charcoal, deliberately free of any blue cast */
 [data-theme="midnight"] {
-  --bg: #0b1120;
-  --fg: #e2e8f0;
-  --surface: #161f33;
-  --surface-muted: #1d2740;
-  --border: #2b3652;
-  --muted-fg: #93a0bd;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --accent-soft: #26314f;
+  --bg: #0a0a0b;
+  --fg: #ededf0;
+  --surface: #17171a;
+  --surface-muted: #202024;
+  --border: #303034;
+  --muted-fg: #a1a1ab;
+  --primary: #d4d4d8;
+  --primary-foreground: #17171a;
+  --accent-soft: #27272b;
 }
 
 @theme inline {
@@ -116,13 +109,43 @@ body {
   letter-spacing: 0;
 }
 
-body {
-  background-image: linear-gradient(135deg, color-mix(in srgb, var(--primary) 4%, transparent) 0 1px, transparent 1px 100%);
-  background-size: 28px 28px;
+/* Colour transitions are opt-in via the transition-colors utility. A blanket
+   `* { transition }` used to sit here, which put transition bookkeeping on
+   every node and made a theme swap repaint the whole tree. */
+@media (prefers-reduced-motion: no-preference) {
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease;
+  }
 }
 
-* {
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Shared form control for the settings screen. Lives here rather than in a
+   runtime <style jsx global> block so it ships in the initial stylesheet. */
+@layer components {
+  .input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--fg);
+    outline: none;
+  }
+  .input:focus {
+    border-color: var(--primary);
+  }
 }
 
 /* Thin scrollbars everywhere, POS screens are dense */

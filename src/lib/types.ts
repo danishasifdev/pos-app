@@ -61,3 +61,72 @@ export type StoreSettings = {
   theme: ThemeName;
   nextReceiptNumber: number;
 };
+
+export type UserRole = "admin" | "user" | "demo";
+
+export type AccountUser = {
+  id: string;
+  email: string;
+  role: UserRole;
+  status: "active" | "disabled";
+  createdAt: string;
+  lastLoginAt: string | null;
+};
+
+export type DailySales = {
+  day: string;
+  total: number;
+  transactionCount: number;
+};
+
+export type UserDashboardData = {
+  salesToday: number;
+  salesThisMonth: number;
+  transactionCount: number;
+  averageTransaction: number;
+  voidedCount: number;
+  dailySales: DailySales[];
+  recentReceipts: Receipt[];
+  activity: AccountActivity[];
+};
+
+export type AccountActivity = {
+  id: string;
+  accountId: string;
+  accountEmail: string;
+  actorEmail: string;
+  eventType:
+    | "account_created"
+    | "signed_in"
+    | "account_disabled"
+    | "account_reactivated"
+    | "account_deleted"
+    | "receipt_created"
+    | "receipt_voided";
+  details: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type AdminTransaction = Receipt & {
+  accountId: string;
+  accountEmail: string;
+  currencySymbol: string;
+};
+
+export type AdminAccountSummary = AccountUser & {
+  currencySymbol: string;
+  salesTotal: number;
+  transactionCount: number;
+  voidedCount: number;
+  lastTransactionAt: string | null;
+  dailySales: DailySales[];
+};
+
+export type AdminDashboardData = {
+  accounts: AdminAccountSummary[];
+  salesByCurrency: { currencySymbol: string; total: number }[];
+  transactionCount: number;
+  activeAccounts: number;
+  dailySales: DailySales[];
+  activity: AccountActivity[];
+};

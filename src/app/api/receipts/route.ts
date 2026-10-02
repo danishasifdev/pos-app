@@ -4,16 +4,25 @@ import {
   getProducts,
   getReceipts,
   getSettings,
-  nextReceiptNumber,
 } from "@/lib/db";
 import { MAX_SAVED_RECORDS, Receipt, ReceiptItem } from "@/lib/types";
 import { randomUUID } from "crypto";
+import { getCurrentUser } from "@/lib/auth";
+import { noStoreApiResponse, privateApiResponse } from "@/lib/api-response";
 
 export async function GET() {
-  return NextResponse.json(getReceipts());
+  const user = await getCurrentUser();
+  if (!user || user.role === "admin") {
+    return noStoreApiResponse({ error: "Unauthorized" }, 401);
+  }
+  return privateApiResponse(await getReceipts(user.id));
 }
 
 export async function POST(req: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user || user.role === "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -29,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
   }
 
-  if (getReceipts().length >= MAX_SAVED_RECORDS) {
+  if ((await getReceipts(user.id)).length >= MAX_SAVED_RECORDS) {
     return NextResponse.json(
       {
         error: `Receipt limit reached. No more receipts can be saved (maximum ${MAX_SAVED_RECORDS}).`,
@@ -38,8 +47,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const products = getProducts();
-  const settings = getSettings();
+  const [products, settings] = await Promise.all([
+    getProducts(user.id),
+    getSettings(user.id),
+  ]);
 
   // Recompute everything from the authoritative product list on the server
   // so a tampered client request can never change what actually gets billed.
@@ -78,9 +89,8 @@ export async function POST(req: NextRequest) {
     typeof body.amountTendered === "number" ? body.amountTendered : total;
   const changeDue = Math.max(0, amountTendered - total);
 
-  const receipt: Receipt = {
+  const receipt: Omit<Receipt, "number"> = {
     id: randomUUID(),
-    number: nextReceiptNumber(),
     createdAt: new Date().toISOString(),
     items,
     subtotal: round2(subtotal),
@@ -95,8 +105,8 @@ export async function POST(req: NextRequest) {
     note: typeof body.note === "string" ? body.note : undefined,
   };
 
-  addReceipt(receipt);
-  return NextResponse.json(receipt, { status: 201 });
+  const savedReceipt = await addReceipt(user.id, receipt);
+  return NextResponse.json(savedReceipt, { status: 201 });
 }
 
 function round2(n: number) {

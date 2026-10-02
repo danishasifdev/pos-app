@@ -1,4 +1,5 @@
 import { Receipt, StoreSettings } from "@/lib/types";
+import { formatDate, formatTime } from "@/lib/format";
 
 export function ReceiptPrintable({
   receipt,
@@ -8,7 +9,6 @@ export function ReceiptPrintable({
   settings: Pick<StoreSettings, "storeName" | "address" | "phone" | "currencySymbol" | "receiptFooter">;
 }) {
   const c = settings.currencySymbol;
-  const date = new Date(receipt.createdAt);
 
   return (
     <div
@@ -23,11 +23,11 @@ export function ReceiptPrintable({
       <Divider />
       <div className="flex justify-between">
         <span>Receipt #{receipt.number}</span>
-        <span>{date.toLocaleDateString()}</span>
+        <span>{formatDate(receipt.createdAt)}</span>
       </div>
       <div className="flex justify-between">
         <span>{receipt.cashier}</span>
-        <span>{date.toLocaleTimeString()}</span>
+        <span>{formatTime(receipt.createdAt)}</span>
       </div>
       <Divider />
       {receipt.items.map((item, i) => (

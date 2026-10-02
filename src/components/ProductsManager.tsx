@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { Category, Product } from "@/lib/types";
+import { readableTextColor } from "@/lib/color";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { useToast } from "./ToastProvider";
+import { useModal } from "./useModal";
 
 type Draft = {
   id?: string;
@@ -15,8 +18,6 @@ type Draft = {
   taxable: boolean;
   active: boolean;
 };
-type Notice = { message: string; tone: "success" | "error" };
-
 const EMPTY_DRAFT: Draft = {
   name: "",
   price: "",
@@ -36,18 +37,14 @@ export function ProductsManager({
   categories: Category[];
   currencySymbol: string;
 }) {
+  const { showToast } = useToast();
   const [products, setProducts] = useState(initialProducts);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<Notice | null>(null);
-
-  useEffect(() => {
-    if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(null), 3000);
-    return () => window.clearTimeout(timeout);
-  }, [notice]);
-
+  const editorRef = useRef<HTMLDivElement>(null);
+  const editorTitleId = useId();
+  useModal(editorRef, () => setDraft(null), draft !== null);
   function openNew() {
     setDraft({ ...EMPTY_DRAFT, categoryId: categories[0]?.id ?? "" });
   }
@@ -101,12 +98,12 @@ export function ProductsManager({
         setProducts((prev) => [...prev, created]);
       }
       setDraft(null);
-      setNotice({ message: "Product saved", tone: "success" });
+      showToast("Product saved", "success");
     } catch (e) {
-      setNotice({
-        message: e instanceof Error ? e.message : "Could not save product",
-        tone: "error",
-      });
+      showToast(
+        e instanceof Error ? e.message : "Could not save product",
+        "error",
+      );
     } finally {
       setSaving(false);
     }
@@ -118,12 +115,12 @@ export function ProductsManager({
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Could not delete product");
       setProducts((prev) => prev.filter((p) => p.id !== id));
-      setNotice({ message: "Product deleted", tone: "success" });
+      showToast("Product deleted", "success");
     } catch (e) {
-      setNotice({
-        message: e instanceof Error ? e.message : "Could not delete product",
-        tone: "error",
-      });
+      showToast(
+        e instanceof Error ? e.message : "Could not delete product",
+        "error",
+      );
     }
   }
 
@@ -138,12 +135,12 @@ export function ProductsManager({
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? "Could not update product");
       setProducts((prev) => prev.map((x) => (x.id === p.id ? body : x)));
-      setNotice({ message: "Product updated", tone: "success" });
+      showToast("Product updated", "success");
     } catch (e) {
-      setNotice({
-        message: e instanceof Error ? e.message : "Could not update product",
-        tone: "error",
-      });
+      showToast(
+        e instanceof Error ? e.message : "Could not update product",
+        "error",
+      );
     }
   }
 
@@ -151,61 +148,68 @@ export function ProductsManager({
     <div className="mx-auto w-full max-w-4xl p-4 md:p-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-fg">Products</h1>
+          <h1 className="text-lg font-semibold tracking-tight text-fg">Products</h1>
           <p className="text-sm text-muted-fg">
             {products.length} items in your catalog
           </p>
         </div>
         <button
           onClick={openNew}
-          className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          type="button"
+          className="flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
         >
-          <Plus size={16} />
+          <Plus aria-hidden="true" size={16} />
           Add product
         </button>
       </div>
 
-      {notice && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
-            notice.tone === "error"
-              ? "border-red-200 bg-red-50 text-red-800"
-              : "border-emerald-200 bg-emerald-50 text-emerald-800"
-          }`}
-        >
-          {notice.message}
-        </div>
-      )}
-
-      <div className="overflow-hidden rounded-xl border border-border bg-surface">
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
         <table className="w-full text-sm">
+          <caption className="sr-only">
+            Products in your catalog, with price, visibility and actions
+          </caption>
           <thead>
             <tr className="border-b border-border bg-surface-muted text-left text-xs uppercase tracking-wide text-muted-fg">
-              <th className="px-4 py-2 font-medium">Product</th>
-              <th className="px-4 py-2 font-medium">Category</th>
-              <th className="px-4 py-2 font-medium">Price</th>
-              <th className="px-4 py-2 font-medium">Status</th>
-              <th className="px-4 py-2"></th>
+              <th scope="col" className="px-4 py-2 font-medium">Product</th>
+              <th scope="col" className="px-4 py-2 font-medium">Category</th>
+              <th scope="col" className="px-4 py-2 font-medium">Price</th>
+              <th scope="col" className="px-4 py-2 font-medium">Status</th>
+              <th scope="col" className="px-4 py-2">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {products.map((p) => {
               const cat = categories.find((c) => c.id === p.categoryId);
               return (
-                <tr key={p.id} className={!p.active ? "opacity-50" : ""}>
-                  <td className="flex items-center gap-2 px-4 py-2.5">
-                    <span className="text-lg">{p.emoji}</span>
-                    <div>
-                      <p className="font-medium text-fg">{p.name}</p>
-                      <p className="text-xs text-muted-fg">{p.sku}</p>
+                <tr
+                  key={p.id}
+                  className={`border-b border-border/70 last:border-0 hover:bg-surface-muted/60 ${
+                    !p.active ? "opacity-60" : ""
+                  }`}
+                >
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-muted text-base"
+                      >
+                        {p.emoji}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-fg">{p.name}</p>
+                        <p className="text-xs text-muted-fg">{p.sku}</p>
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-2.5">
                     <span
-                      className="rounded-full px-2 py-0.5 text-xs font-medium text-white"
-                      style={{ backgroundColor: cat?.color ?? "#64748b" }}
+                      className="rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{
+                        backgroundColor: cat?.color ?? "#64748b",
+                        color: readableTextColor(cat?.color ?? "#64748b"),
+                      }}
                     >
                       {cat?.name ?? "Uncategorized"}
                     </span>
@@ -216,10 +220,12 @@ export function ProductsManager({
                   </td>
                   <td className="px-4 py-2.5">
                     <button
+                      aria-label={`${p.active ? "Hide" : "Show"} ${p.name}`}
                       onClick={() => toggleActive(p)}
+                      type="button"
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         p.active
-                          ? "bg-emerald-100 text-emerald-700"
+                          ? "bg-emerald-100 text-emerald-800"
                           : "bg-surface-muted text-muted-fg"
                       }`}
                     >
@@ -227,18 +233,22 @@ export function ProductsManager({
                     </button>
                   </td>
                   <td className="px-4 py-2.5">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       <button
+                        aria-label={`Edit ${p.name}`}
                         onClick={() => openEdit(p)}
-                        className="text-muted-fg hover:text-fg"
+                        type="button"
+                        className="rounded-md p-2 text-muted-fg hover:bg-surface-muted hover:text-fg"
                       >
-                        <Pencil size={14} />
+                        <Pencil aria-hidden="true" size={15} />
                       </button>
                       <button
+                        aria-label={`Delete ${p.name}`}
                         onClick={() => setPendingDelete(p)}
-                        className="text-muted-fg hover:text-red-500"
+                        type="button"
+                        className="rounded-md p-2 text-muted-fg hover:bg-red-50 hover:text-red-600"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 aria-hidden="true" size={15} />
                       </button>
                     </div>
                   </td>
@@ -255,24 +265,32 @@ export function ProductsManager({
           onClick={() => setDraft(null)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-xl"
+            aria-labelledby={editorTitleId}
+            aria-modal="true"
+            ref={editorRef}
+            role="dialog"
+            tabIndex={-1}
+            className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-xl focus:outline-none"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-fg">
+              <h2 className="text-base font-semibold text-fg" id={editorTitleId}>
                 {draft.id ? "Edit product" : "New product"}
               </h2>
               <button
+                aria-label="Close product editor"
                 onClick={() => setDraft(null)}
+                type="button"
                 className="text-muted-fg hover:text-fg"
               >
-                <X size={18} />
+                <X aria-hidden="true" size={18} />
               </button>
             </div>
 
             <div className="space-y-3">
               <div className="flex gap-2">
                 <input
+                  aria-label="Product emoji"
                   value={draft.emoji}
                   onChange={(e) =>
                     setDraft({ ...draft, emoji: e.target.value })
@@ -281,6 +299,7 @@ export function ProductsManager({
                   maxLength={2}
                 />
                 <input
+                  aria-label="Product name"
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                   placeholder="Product name"
@@ -289,6 +308,7 @@ export function ProductsManager({
               </div>
               <div className="flex gap-2">
                 <input
+                  aria-label="Price"
                   value={draft.price}
                   onChange={(e) =>
                     setDraft({ ...draft, price: e.target.value })
@@ -298,6 +318,7 @@ export function ProductsManager({
                   className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
                 />
                 <input
+                  aria-label="SKU"
                   value={draft.sku}
                   onChange={(e) => setDraft({ ...draft, sku: e.target.value })}
                   placeholder="SKU"
@@ -305,6 +326,7 @@ export function ProductsManager({
                 />
               </div>
               <select
+                aria-label="Category"
                 value={draft.categoryId}
                 onChange={(e) =>
                   setDraft({ ...draft, categoryId: e.target.value })
@@ -331,6 +353,7 @@ export function ProductsManager({
 
             <button
               onClick={save}
+              type="button"
               disabled={saving || !draft.name.trim() || !draft.price}
               className="mt-5 w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
             >

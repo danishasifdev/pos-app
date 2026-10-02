@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { X, Banknote, CreditCard, Smartphone } from "lucide-react";
 import { Numpad } from "./Numpad";
+import { useModal } from "./useModal";
 
 export type PaymentMethod = "cash" | "card" | "mobile";
 
@@ -21,6 +22,9 @@ export function PaymentModal({
 }) {
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [tendered, setTendered] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useModal(dialogRef, onClose);
 
   const tenderedValue = tendered === "" ? total : parseFloat(tendered) || 0;
   const changeDue = Math.max(0, tenderedValue - total);
@@ -40,13 +44,25 @@ export function PaymentModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-xl"
+        aria-labelledby={titleId}
+        aria-modal="true"
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+        className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-xl focus:outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-fg">Take payment</h2>
-          <button onClick={onClose} className="text-muted-fg hover:text-fg">
-            <X size={18} />
+          <h2 className="text-base font-semibold text-fg" id={titleId}>
+            Take payment
+          </h2>
+          <button
+            aria-label="Close payment dialog"
+            onClick={onClose}
+            type="button"
+            className="text-muted-fg hover:text-fg"
+          >
+            <X aria-hidden="true" size={18} />
           </button>
         </div>
 
@@ -109,6 +125,7 @@ export function PaymentModal({
         <button
           disabled={submitting}
           onClick={() => onConfirm(method, tenderedValue)}
+          type="button"
           className="mt-4 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
         >
           {submitting ? "Processing…" : "Confirm & print receipt"}
@@ -131,14 +148,16 @@ function MethodButton({
 }) {
   return (
     <button
+      aria-pressed={active}
       onClick={onClick}
+      type="button"
       className={`flex flex-col items-center gap-1 rounded-lg border py-2 text-xs font-medium ${
         active
           ? "border-primary bg-accent-soft text-fg"
           : "border-border text-muted-fg hover:bg-surface-muted"
       }`}
     >
-      <Icon size={16} />
+      <Icon aria-hidden="true" size={16} />
       {label}
     </button>
   );

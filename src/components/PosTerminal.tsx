@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Search, CheckCircle2, Printer, X } from "lucide-react";
+import { useId, useMemo, useRef, useState } from "react";
+import { Search, CheckCircle2, Printer } from "lucide-react";
 import { Category, Product, Receipt, StoreSettings } from "@/lib/types";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductGrid } from "./ProductGrid";
 import { Cart } from "./Cart";
 import { PaymentModal, PaymentMethod } from "./PaymentModal";
 import { ReceiptPrintable } from "./ReceiptPrintable";
+import { useToast } from "./ToastProvider";
+import { useModal } from "./useModal";
 
 export type CartLine = { product: Product; quantity: number };
-type Notice = { message: string; tone: "success" | "error" | "info" };
 
 export function PosTerminal({
   initialProducts,
@@ -21,6 +22,7 @@ export function PosTerminal({
   categories: Category[];
   settings: StoreSettings;
 }) {
+  const { showToast } = useToast();
   const [products] = useState(initialProducts);
   const [activeCategory, setActiveCategory] = useState<string | "all">("all");
   const [search, setSearch] = useState("");
@@ -30,14 +32,6 @@ export function PosTerminal({
   const [completedReceipt, setCompletedReceipt] = useState<Receipt | null>(
     null,
   );
-  const [notice, setNotice] = useState<Notice | null>(null);
-
-  useEffect(() => {
-    if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(null), 2600);
-    return () => window.clearTimeout(timeout);
-  }, [notice]);
-
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       if (!p.active) return false;
@@ -62,12 +56,12 @@ export function PosTerminal({
       }
       return [...prev, { product, quantity: 1 }];
     });
-    setNotice({
-      message: existing
+    showToast(
+      existing
         ? `${product.name} quantity increased`
         : `${product.name} added to order`,
-      tone: "success",
-    });
+      "success",
+    );
   }
 
   function increment(id: string) {
@@ -77,11 +71,7 @@ export function PosTerminal({
         l.product.id === id ? { ...l, quantity: l.quantity + 1 } : l,
       ),
     );
-    if (line)
-      setNotice({
-        message: `${line.product.name} quantity increased`,
-        tone: "info",
-      });
+    if (line) showToast(`${line.product.name} quantity increased`);
   }
 
   function decrement(id: string) {
@@ -94,29 +84,23 @@ export function PosTerminal({
         .filter((l) => l.quantity > 0),
     );
     if (line) {
-      setNotice({
-        message:
-          line.quantity === 1
-            ? `${line.product.name} removed`
-            : `${line.product.name} quantity decreased`,
-        tone: "info",
-      });
+      showToast(
+        line.quantity === 1
+          ? `${line.product.name} removed`
+          : `${line.product.name} quantity decreased`,
+      );
     }
   }
 
   function remove(id: string) {
     const line = lines.find((item) => item.product.id === id);
     setLines((prev) => prev.filter((l) => l.product.id !== id));
-    if (line)
-      setNotice({
-        message: `${line.product.name} removed from order`,
-        tone: "info",
-      });
+    if (line) showToast(`${line.product.name} removed from order`);
   }
 
   function clearCart(showNotification = true) {
     setLines([]);
-    if (showNotification) setNotice({ message: "Order cleared", tone: "info" });
+    if (showNotification) showToast("Order cleared");
   }
 
   const subtotal = lines.reduce((s, l) => s + l.product.price * l.quantity, 0);
@@ -132,7 +116,6 @@ export function PosTerminal({
 
   async function confirmPayment(method: PaymentMethod, tendered: number) {
     setSubmitting(true);
-    setNotice(null);
     try {
       const res = await fetch("/api/receipts", {
         method: "POST",
@@ -154,15 +137,12 @@ export function PosTerminal({
       setCompletedReceipt(receipt);
       setShowPayment(false);
       clearCart(false);
-      setNotice({
-        message: `Payment complete · Receipt #${receipt.number}`,
-        tone: "success",
-      });
+      showToast(`Payment complete · Receipt #${receipt.number}`, "success");
     } catch (e) {
-      setNotice({
-        message: e instanceof Error ? e.message : "Something went wrong",
-        tone: "error",
-      });
+      showToast(
+        e instanceof Error ? e.message : "Something went wrong",
+        "error",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -170,7 +150,8 @@ export function PosTerminal({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col md:flex-row">
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <h1 className="sr-only">Point of sale terminal</h1>
         <CategoryTabs
           categories={categories}
           active={activeCategory}
@@ -179,18 +160,21 @@ export function PosTerminal({
         <div className="px-4 pt-3 md:px-6">
           <div className="relative">
             <Search
+              aria-hidden="true"
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg"
             />
             <input
+              aria-label="Search products"
+              type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search products…"
-              className="w-full rounded-lg border border-border bg-surface py-2 pl-9 pr-3 text-sm text-fg outline-none focus:border-primary"
+              className="w-full rounded-lg border border-border bg-surface py-2.5 pl-9 pr-3 text-sm text-fg shadow-sm outline-none transition-colors placeholder:text-muted-fg focus:border-primary"
             />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <ProductGrid
             products={filteredProducts}
             currencySymbol={settings.currencySymbol}
@@ -199,7 +183,7 @@ export function PosTerminal({
         </div>
       </div>
 
-      <div className="h-[45vh] w-full shrink-0 md:h-auto md:w-96">
+      <div className="h-[45vh] w-full shrink-0 md:h-auto md:w-72 lg:w-96">
         <Cart
           lines={lines}
           currencySymbol={settings.currencySymbol}
@@ -223,29 +207,6 @@ export function PosTerminal({
         />
       )}
 
-      {notice && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={`fixed top-4 right-4 z-60 flex  items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-xl ${
-            notice.tone === "error"
-              ? "border-red-200 bg-red-50 text-red-800"
-              : notice.tone === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-border bg-surface text-fg"
-          }`}
-        >
-          <span className="truncate">{notice.message}</span>
-          <button
-            aria-label="Dismiss notification"
-            onClick={() => setNotice(null)}
-            className="shrink-0 opacity-60 hover:opacity-100"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
       {completedReceipt && (
         <ReceiptSuccessModal
           receipt={completedReceipt}
@@ -266,11 +227,16 @@ function ReceiptSuccessModal({
   settings: StoreSettings;
   onClose: () => void;
 }) {
+  const { showToast } = useToast();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  useModal(dialogRef, onClose);
+
   function printReceipt() {
     try {
       window.print();
-    } catch (e) {
-      console.log("Error :", e);
+    } catch {
+      showToast("Printing is unavailable in this browser.", "error");
     }
   }
 
@@ -280,13 +246,24 @@ function ReceiptSuccessModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-surface shadow-xl"
+        aria-labelledby={titleId}
+        aria-modal="true"
+        ref={dialogRef}
+        role="dialog"
+        tabIndex={-1}
+        className="flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-surface shadow-xl focus:outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-          <CheckCircle2 size={20} className="text-emerald-500" />
+          <CheckCircle2
+            aria-hidden="true"
+            size={20}
+            className="text-emerald-500"
+          />
           <div>
-            <p className="text-sm font-semibold text-fg">Payment complete</p>
+            <p className="text-sm font-semibold text-fg" id={titleId}>
+              Payment complete
+            </p>
             <p className="text-xs text-muted-fg">
               Receipt #{receipt.number} saved
             </p>
@@ -298,15 +275,17 @@ function ReceiptSuccessModal({
         <div className="flex gap-2 border-t border-border p-4">
           <button
             onClick={onClose}
+            type="button"
             className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-fg hover:bg-surface-muted"
           >
             Close
           </button>
           <button
             onClick={printReceipt}
+            type="button"
             className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
-            <Printer size={16} />
+            <Printer aria-hidden="true" size={16} />
             Print
           </button>
         </div>

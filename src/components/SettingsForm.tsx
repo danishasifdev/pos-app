@@ -1,24 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, LoaderCircle } from "lucide-react";
 import { StoreSettings } from "@/lib/types";
 import { THEMES } from "@/lib/themes";
 import { useTheme } from "./ThemeProvider";
+import { useToast } from "./ToastProvider";
 
 export function SettingsForm({
   initialSettings,
 }: {
   initialSettings: StoreSettings;
 }) {
+  const { showToast } = useToast();
   const [settings, setSettings] = useState(initialSettings);
   const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const { theme, setTheme } = useTheme();
 
   async function save() {
+    if (saving) return;
+    setSaving(true);
     setSaved(false);
-    setSaveError(null);
     try {
       const res = await fetch("/api/settings", {
         method: "PUT",
@@ -29,23 +32,27 @@ export function SettingsForm({
       if (!res.ok) throw new Error(body.error ?? "Could not save settings");
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      showToast("Settings saved", "success");
     } catch (error) {
-      setSaveError(
+      showToast(
         error instanceof Error ? error.message : "Could not save settings",
+        "error",
       );
+    } finally {
+      setSaving(false);
     }
   }
 
   return (
     <div className="mx-auto w-full max-w-2xl p-4 md:p-6">
-      <h1 className="mb-1 text-lg font-semibold text-fg">Store settings</h1>
+      <h1 className="text-lg font-semibold tracking-tight text-fg">Store settings</h1>
       <p className="mb-6 text-sm text-muted-fg">
         Controls what prints on receipts and how the terminal looks.
       </p>
 
-      <div className="mb-6 rounded-xl border border-border bg-surface p-5">
-        <h2 className="mb-3 text-sm font-semibold text-fg">Store details</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mb-6 rounded-xl border border-border bg-surface p-5 shadow-sm">
+        <h2 className="mb-4 text-sm font-semibold text-fg">Store details</h2>
+        <div className="grid gap-3.5 sm:grid-cols-2">
           <Field label="Store name">
             <input
               value={settings.storeName}
@@ -107,28 +114,33 @@ export function SettingsForm({
         </div>
       </div>
 
-      <div className="mb-6 rounded-xl border border-border bg-surface p-5">
-        <h2 className="mb-3 text-sm font-semibold text-fg">Appearance</h2>
+      <div className="mb-6 rounded-xl border border-border bg-surface p-5 shadow-sm">
+        <h2 className="mb-4 text-sm font-semibold text-fg">Appearance</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {THEMES.map((t) => (
             <button
               key={t.id}
+              aria-pressed={theme === t.id}
               onClick={() => {
                 setTheme(t.id);
                 setSettings({ ...settings, theme: t.id });
               }}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+              type="button"
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
                 theme === t.id
                   ? "border-primary bg-accent-soft"
                   : "border-border hover:bg-surface-muted"
               }`}
             >
               <span
+                aria-hidden="true"
                 className="h-4 w-4 rounded-full border border-border"
                 style={{ backgroundColor: t.swatch }}
               />
               <span className="flex-1 text-left text-fg">{t.label}</span>
-              {theme === t.id && <Check size={14} className="text-primary" />}
+              {theme === t.id && (
+                <Check aria-hidden="true" size={14} className="text-primary" />
+              )}
             </button>
           ))}
         </div>
@@ -136,31 +148,13 @@ export function SettingsForm({
 
       <button
         onClick={save}
-        className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+        type="button"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-60"
+        disabled={saving}
       >
-        {saved ? "Saved ✓" : "Save changes"}
+        {saving && <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />}
+        {saving ? "Saving…" : saved ? "Saved ✓" : "Save changes"}
       </button>
-      {saveError && (
-        <p role="alert" className="mt-3 text-sm text-red-700">
-          {saveError}
-        </p>
-      )}
-
-      <style jsx global>{`
-        .input {
-          width: 100%;
-          border-radius: 0.5rem;
-          border: 1px solid var(--border);
-          background: var(--surface);
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          color: var(--fg);
-          outline: none;
-        }
-        .input:focus {
-          border-color: var(--primary);
-        }
-      `}</style>
     </div>
   );
 }
