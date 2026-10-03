@@ -41,3 +41,9 @@ export function formatDayLabel(day: string): string {
     day: "numeric",
   });
 }
+/** Round to cents. Money is rounded once, then everything derived from it
+ *  (tax-inclusive totals, change due) is computed from the rounded figure so a
+ *  receipt always satisfies `tendered = total + change`. */
+export function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}

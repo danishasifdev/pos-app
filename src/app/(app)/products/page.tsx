@@ -1,15 +1,23 @@
-import { getCategories, getProducts, getSettings } from "@/lib/db";
+import {
+  getWorkspaceCategories,
+  getWorkspaceProducts,
+  getWorkspaceSettings,
+} from "@/lib/workspace";
 import { ProductsManager } from "@/components/ProductsManager";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { resetScratchOnDocumentLoad } from "@/lib/scratch-session";
 
 export default async function ProductsPage() {
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") redirect(user?.role === "admin" ? "/admin" : "/login");
+  if (user?.role === "admin") redirect("/admin");
+
+  await resetScratchOnDocumentLoad(user);
+
   const [products, categories, settings] = await Promise.all([
-    getProducts(user.id),
-    getCategories(user.id),
-    getSettings(user.id),
+    getWorkspaceProducts(user),
+    getWorkspaceCategories(user),
+    getWorkspaceSettings(user),
   ]);
 
   return (
@@ -17,6 +25,7 @@ export default async function ProductsPage() {
       initialProducts={products}
       categories={categories}
       currencySymbol={settings.currencySymbol}
+      ephemeral={!user}
     />
   );
 }

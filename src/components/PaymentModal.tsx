@@ -3,6 +3,7 @@
 import { useId, useRef, useState } from "react";
 import { X, Banknote, CreditCard, Smartphone } from "lucide-react";
 import { Numpad } from "./Numpad";
+import { round2 } from "@/lib/format";
 import { useModal } from "./useModal";
 
 export type PaymentMethod = "cash" | "card" | "mobile";
@@ -27,7 +28,9 @@ export function PaymentModal({
   useModal(dialogRef, onClose);
 
   const tenderedValue = tendered === "" ? total : parseFloat(tendered) || 0;
-  const changeDue = Math.max(0, tenderedValue - total);
+  // rounded the same way the server rounds, so the figure on screen is the
+  // figure that gets printed
+  const changeDue = round2(Math.max(0, tenderedValue - total));
 
   function handleKey(key: string) {
     if (key === "back") {

@@ -1,15 +1,25 @@
-import { getCategories, getProducts, getSettings } from "@/lib/db";
+import {
+  getWorkspaceCategories,
+  getWorkspaceProducts,
+  getWorkspaceSettings,
+} from "@/lib/workspace";
 import { PosTerminal } from "@/components/PosTerminal";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { resetScratchOnDocumentLoad } from "@/lib/scratch-session";
 
 export default async function Home() {
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") redirect(user?.role === "admin" ? "/admin" : "/login");
+  if (user?.role === "admin") redirect("/admin");
+
+  // Signed-out visitors work against the throwaway scratch workspace, which is
+  // wiped on every hard load so nothing survives a refresh.
+  await resetScratchOnDocumentLoad(user);
+
   const [products, categories, settings] = await Promise.all([
-    getProducts(user.id),
-    getCategories(user.id),
-    getSettings(user.id),
+    getWorkspaceProducts(user),
+    getWorkspaceCategories(user),
+    getWorkspaceSettings(user),
   ]);
 
   return (
@@ -17,6 +27,7 @@ export default async function Home() {
       initialProducts={products}
       categories={categories}
       settings={settings}
+      signedIn={Boolean(user)}
     />
   );
 }

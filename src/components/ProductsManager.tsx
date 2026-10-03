@@ -3,7 +3,7 @@
 import { useId, useRef, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { Category, Product } from "@/lib/types";
-import { readableTextColor } from "@/lib/color";
+import { chipStyle } from "@/lib/color";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { useToast } from "./ToastProvider";
 import { useModal } from "./useModal";
@@ -32,19 +32,23 @@ export function ProductsManager({
   initialProducts,
   categories,
   currencySymbol,
+  ephemeral = false,
 }: {
   initialProducts: Product[];
   categories: Category[];
   currencySymbol: string;
+  ephemeral?: boolean;
 }) {
   const { showToast } = useToast();
   const [products, setProducts] = useState(initialProducts);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
+
   const [saving, setSaving] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const editorTitleId = useId();
   useModal(editorRef, () => setDraft(null), draft !== null);
+
   function openNew() {
     setDraft({ ...EMPTY_DRAFT, categoryId: categories[0]?.id ?? "" });
   }
@@ -152,6 +156,12 @@ export function ProductsManager({
           <p className="text-sm text-muted-fg">
             {products.length} items in your catalog
           </p>
+          {ephemeral && (
+            <p className="mt-1 text-xs text-muted-fg">
+              Signed out — changes go to a temporary file and are erased when you
+              reload.
+            </p>
+          )}
         </div>
         <button
           onClick={openNew}
@@ -206,10 +216,7 @@ export function ProductsManager({
                   <td className="px-4 py-2.5">
                     <span
                       className="rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={{
-                        backgroundColor: cat?.color ?? "#64748b",
-                        color: readableTextColor(cat?.color ?? "#64748b"),
-                      }}
+                      style={chipStyle(cat?.color ?? "#64748b")}
                     >
                       {cat?.name ?? "Uncategorized"}
                     </span>

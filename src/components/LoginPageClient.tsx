@@ -24,6 +24,7 @@ export function LoginPageClient({
         throw new Error(result.error ?? "Could not open the public demo.");
       }
       showToast("Signed in to the demo account.", "success");
+      // the terminal is the landing page now, so go straight there
       router.replace("/");
       router.refresh();
     } catch (error) {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useMemo, useRef, useState } from "react";
 import { Search, CheckCircle2, Printer } from "lucide-react";
 import { Category, Product, Receipt, StoreSettings } from "@/lib/types";
@@ -8,6 +9,7 @@ import { ProductGrid } from "./ProductGrid";
 import { Cart } from "./Cart";
 import { PaymentModal, PaymentMethod } from "./PaymentModal";
 import { ReceiptPrintable } from "./ReceiptPrintable";
+import { round2 } from "@/lib/format";
 import { useToast } from "./ToastProvider";
 import { useModal } from "./useModal";
 
@@ -17,10 +19,12 @@ export function PosTerminal({
   initialProducts,
   categories,
   settings,
+  signedIn = true,
 }: {
   initialProducts: Product[];
   categories: Category[];
   settings: StoreSettings;
+  signedIn?: boolean;
 }) {
   const { showToast } = useToast();
   const [products] = useState(initialProducts);
@@ -47,8 +51,12 @@ export function PosTerminal({
   }, [products, activeCategory, search]);
 
   function addToCart(product: Product) {
-    const existing = lines.find((line) => line.product.id === product.id);
+    // The lookup has to happen inside the updater. Reading `lines` from the
+    // render closure instead makes every call in a single batch observe the
+    // same stale array, so N taps dispatched in one tick append N duplicate
+    // rows of quantity 1 rather than incrementing one row.
     setLines((prev) => {
+      const existing = prev.find((l) => l.product.id === product.id);
       if (existing) {
         return prev.map((l) =>
           l.product.id === product.id ? { ...l, quantity: l.quantity + 1 } : l,
@@ -56,12 +64,7 @@ export function PosTerminal({
       }
       return [...prev, { product, quantity: 1 }];
     });
-    showToast(
-      existing
-        ? `${product.name} quantity increased`
-        : `${product.name} added to order`,
-      "success",
-    );
+    showToast(`${product.name} added to order`, "success");
   }
 
   function increment(id: string) {
@@ -112,7 +115,7 @@ export function PosTerminal({
         : 0),
     0,
   );
-  const total = Math.max(0, subtotal + taxTotal);
+  const total = round2(Math.max(0, subtotal + taxTotal));
 
   async function confirmPayment(method: PaymentMethod, tendered: number) {
     setSubmitting(true);
@@ -211,6 +214,7 @@ export function PosTerminal({
         <ReceiptSuccessModal
           receipt={completedReceipt}
           settings={settings}
+          signedIn={signedIn}
           onClose={() => setCompletedReceipt(null)}
         />
       )}
@@ -221,10 +225,12 @@ export function PosTerminal({
 function ReceiptSuccessModal({
   receipt,
   settings,
+  signedIn,
   onClose,
 }: {
   receipt: Receipt;
   settings: StoreSettings;
+  signedIn: boolean;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
@@ -272,6 +278,17 @@ function ReceiptSuccessModal({
         <div className="flex-1 overflow-y-auto bg-surface-muted py-4">
           <ReceiptPrintable receipt={receipt} settings={settings} />
         </div>
+        {!signedIn && (
+          <p className="border-t border-border bg-accent-soft px-5 py-3 text-xs text-fg">
+            <strong className="font-semibold">Not saved.</strong> You are signed
+            out, so this receipt went to a temporary file and will be gone when
+            you reload.{" "}
+            <Link className="font-semibold underline" href="/register">
+              Create a free account
+            </Link>{" "}
+            to keep it.
+          </p>
+        )}
         <div className="flex gap-2 border-t border-border p-4">
           <button
             onClick={onClose}

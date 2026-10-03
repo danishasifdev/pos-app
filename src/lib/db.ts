@@ -154,6 +154,18 @@ export async function createAccount(
   }
 }
 
+/** Account id of the shared, seeded demo workspace (see migration 0002). */
+export const DEMO_WORKSPACE_ID = "demo";
+
+/**
+ * Which account's rows a reader should see. Signed-out visitors browse the demo
+ * workspace read-only; writes still require a session and are rejected by the
+ * API routes.
+ */
+export function workspaceIdFor(user: { id: string } | null): string {
+  return user?.id ?? DEMO_WORKSPACE_ID;
+}
+
 export async function isAccountSessionActive(
   id: string,
   role: UserRole,

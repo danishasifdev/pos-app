@@ -1,7 +1,7 @@
 "use client";
 
 import { Category } from "@/lib/types";
-import { readableTextColor } from "@/lib/color";
+import { chipStyle } from "@/lib/color";
 
 export function CategoryTabs({
   categories,
@@ -56,7 +56,7 @@ function TabButton({
           ? "border-transparent shadow-sm"
           : "border-border bg-surface text-fg hover:bg-surface-muted"
       }`}
-      style={selected ? { backgroundColor: color, color: readableTextColor(color) } : undefined}
+      style={selected ? chipStyle(color) : undefined}
     >
       <span
         aria-hidden="true"

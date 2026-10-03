@@ -39,6 +39,8 @@ yarn-error.log*
 
 # local JSON "database" - each environment seeds its own copy on first run
 /data/*.json
+# scratch workspace writes go through a temp file before being renamed into place
+/data/*.tmp
 
 # typescript
 *.tsbuildinfo

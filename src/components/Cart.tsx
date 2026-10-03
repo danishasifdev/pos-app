@@ -2,6 +2,7 @@
 
 import { CartLine } from "./PosTerminal";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { round2 } from "@/lib/format";
 
 export function Cart({
   lines,
@@ -24,12 +25,12 @@ export function Cart({
   onClear: () => void;
   onCheckout: () => void;
 }) {
-  const subtotal = lines.reduce((sum, l) => sum + l.product.price * l.quantity, 0);
-  const taxTotal = lines.reduce(
+  const subtotal = round2(lines.reduce((sum, l) => sum + l.product.price * l.quantity, 0));
+  const taxTotal = round2(lines.reduce(
     (sum, l) => sum + (l.product.taxable ? l.product.price * l.quantity * (taxRate / 100) : 0),
     0
-  );
-  const total = Math.max(0, subtotal + taxTotal - discount);
+  ));
+  const total = Math.max(0, round2(subtotal + taxTotal - discount));
   const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
 
   return (

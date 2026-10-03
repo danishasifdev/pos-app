@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteProduct, updateProduct } from "@/lib/db";
+import { deleteWorkspaceProduct, updateWorkspaceProduct } from "@/lib/workspace";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function PUT(
@@ -7,7 +7,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") {
+  if (user?.role === "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
@@ -20,7 +20,7 @@ export async function PUT(
       { status: 400 },
     );
   }
-  const updated = await updateProduct(user.id, id, patch);
+  const updated = await updateWorkspaceProduct(user, id, patch);
   if (!updated) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
@@ -32,10 +32,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") {
+  if (user?.role === "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
-  await deleteProduct(user.id, id);
+  await deleteWorkspaceProduct(user, id);
   return NextResponse.json({ ok: true });
 }
