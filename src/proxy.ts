@@ -7,6 +7,9 @@ import { readSessionToken, SESSION_COOKIE } from "@/lib/auth";
 const PUBLIC_PATHS = new Set([
   "/",
   "/products",
+  "/receipts",
+  "/settings",
+  "/dashboard",
   "/login",
   "/register",
   "/admin/login",
@@ -16,7 +19,10 @@ const PUBLIC_PATHS = new Set([
 // scratch workspace, never a real account. /api/admin/* and /api/receipts/[id]
 // stay signed-in only.
 const SCRATCH_API_PATHS = new Set(["/api/products", "/api/receipts", "/api/settings"]);
-const SCRATCH_API_PREFIXES = ["/api/products/"];
+const SCRATCH_API_PREFIXES = ["/api/products/", "/api/receipts/"];
+
+// /receipts/<id> for the scratch workspace, same as /receipts itself.
+const SCRATCH_PAGE_PREFIXES = ["/receipts/"];
 
 function isScratchApi(pathname: string): boolean {
   if (SCRATCH_API_PATHS.has(pathname)) return true;
@@ -43,6 +49,7 @@ export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (
     PUBLIC_PATHS.has(pathname) ||
+    SCRATCH_PAGE_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
     pathname.startsWith("/api/auth/") ||
     pathname === "/api/cron/expire-accounts" ||
     pathname === "/api/health"

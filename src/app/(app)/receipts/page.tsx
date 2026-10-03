@@ -1,15 +1,28 @@
-import { getReceipts, getSettings } from "@/lib/db";
+import {
+  getWorkspaceReceipts,
+  getWorkspaceSettings,
+} from "@/lib/workspace";
 import { ReceiptsList } from "@/components/ReceiptsList";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { resetScratchOnDocumentLoad } from "@/lib/scratch-session";
 
 export default async function ReceiptsPage() {
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") redirect(user?.role === "admin" ? "/admin" : "/login");
+  if (user?.role === "admin") redirect("/admin");
+
+  await resetScratchOnDocumentLoad(user);
+
   const [receipts, settings] = await Promise.all([
-    getReceipts(user.id),
-    getSettings(user.id),
+    getWorkspaceReceipts(user),
+    getWorkspaceSettings(user),
   ]);
 
-  return <ReceiptsList receipts={receipts} currencySymbol={settings.currencySymbol} />;
+  return (
+    <ReceiptsList
+      receipts={receipts}
+      currencySymbol={settings.currencySymbol}
+      ephemeral={!user}
+    />
+  );
 }

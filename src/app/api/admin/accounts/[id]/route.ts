@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { deleteAccount, getAccountActivity, setAccountStatus } from "@/lib/db";
+import { deleteAccount, getAccountProfile, setAccountStatus } from "@/lib/db";
 import { noStoreApiResponse, privateApiResponse } from "@/lib/api-response";
 
 export async function GET(
@@ -12,7 +12,11 @@ export async function GET(
     return noStoreApiResponse({ error: "Forbidden" }, 403);
   }
   const { id } = await params;
-  return privateApiResponse({ activity: await getAccountActivity(id) });
+  const profile = await getAccountProfile(id);
+  if (!profile) {
+    return noStoreApiResponse({ error: "Account not found" }, 404);
+  }
+  return privateApiResponse(profile);
 }
 
 export async function PATCH(

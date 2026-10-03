@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
     return noStoreApiResponse({ error: "Forbidden" }, 403);
   }
   const accountId = request.nextUrl.searchParams.get("accountId") ?? undefined;
+  const limit = Number(request.nextUrl.searchParams.get("limit")) || 200;
   return privateApiResponse({
-    transactions: await getAdminTransactions(accountId),
+    transactions: await getAdminTransactions(accountId, limit),
   });
 }

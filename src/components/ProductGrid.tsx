@@ -37,7 +37,7 @@ export function ProductGrid({
             <span aria-hidden="true">{product.emoji}</span>
           </div>
 
-          <p className="line-clamp-2 flex-1 text-sm font-medium leading-5 text-fg">
+          <p className="line-clamp-2 flex-1 text-sm font-medium text-center leading-5 text-fg">
             {product.name}
           </p>
 

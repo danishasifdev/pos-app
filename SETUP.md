@@ -1,4 +1,4 @@
-# Setup Guide - Mall POS
+# Setup Guide - POS
 
 ## Local development
 

@@ -130,3 +130,19 @@ export type AdminDashboardData = {
   dailySales: DailySales[];
   activity: AccountActivity[];
 };
+
+/** Everything the admin console shows for a single account. */
+export type AdminUserProfile = {
+  account: AccountUser;
+  settings: StoreSettings | null;
+  stats: {
+    salesTotal: number;
+    transactionCount: number;
+    voidedCount: number;
+    averageTransaction: number;
+    productCount: number;
+    lastTransactionAt: string | null;
+  };
+  recentReceipts: Receipt[];
+  activity: AccountActivity[];
+};

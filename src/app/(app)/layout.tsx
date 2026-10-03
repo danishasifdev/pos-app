@@ -28,17 +28,23 @@ export default async function AppLayout({
 
   return (
     <ThemeProvider initialTheme={settings?.theme ?? DEFAULT_THEME}>
-      {user && <Sidebar user={user} />}
+      <Sidebar
+        user={user ?? { id: "guest", email: "Anonymous", role: "user" }}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-4 py-3 md:px-6">
           {anonymous ? (
-            <Link className="flex min-w-0 items-center gap-2.5" href="/" prefetch={false}>
+            <Link
+              className="flex min-w-0 items-center gap-2.5"
+              href="/"
+              prefetch={false}
+            >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
                 <Store aria-hidden="true" size={18} />
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-semibold tracking-tight text-fg">
-                  {settings?.storeName ?? "Mall POS"}
+                  {settings?.storeName ?? "POS"}
                 </span>
                 <span className="block truncate text-xs text-muted-fg">
                   {settings?.address ?? "Demo terminal"}
@@ -48,7 +54,7 @@ export default async function AppLayout({
           ) : (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-fg">
-                {settings?.storeName ?? "Mall POS Admin"}
+                {settings?.storeName ?? "POS Admin"}
               </p>
               <p className="truncate text-xs text-muted-fg">
                 {settings?.address ?? user.email}
@@ -59,13 +65,6 @@ export default async function AppLayout({
             <ThemeSwitcher />
             {anonymous && (
               <>
-                <Link
-                  className="hidden rounded-lg px-3 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-muted sm:block"
-                  href="/products"
-                  prefetch={false}
-                >
-                  Products
-                </Link>
                 <Link
                   className="hidden rounded-lg px-3 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-muted sm:hidden"
                   href="/login"
@@ -83,7 +82,9 @@ export default async function AppLayout({
           </div>
         </header>
         {anonymous && <DemoBanner />}
-        <main className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col overflow-auto">
+          {children}
+        </main>
       </div>
     </ThemeProvider>
   );

@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 export const metadata: Metadata = {
   title: "Create an account",
   description:
-    "Create a Mall POS account with its own products, settings, and receipts.",
+    "Create a POS account with its own products, settings, and receipts.",
 };
 
 export default async function RegisterPage() {
