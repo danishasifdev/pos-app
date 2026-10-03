@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addProduct, getCategories, getProducts } from "@/lib/db";
+import {
+  addWorkspaceProduct,
+  getWorkspaceCategories,
+  getWorkspaceProducts,
+} from "@/lib/workspace";
 import { randomUUID } from "crypto";
 import { MAX_SAVED_RECORDS } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
@@ -7,15 +11,15 @@ import { noStoreApiResponse, privateApiResponse } from "@/lib/api-response";
 
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") {
+  if (user?.role === "admin") {
     return noStoreApiResponse({ error: "Unauthorized" }, 401);
   }
-  return privateApiResponse(await getProducts(user.id));
+  return privateApiResponse(await getWorkspaceProducts(user));
 }
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") {
+  if (user?.role === "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   let body: Record<string, unknown>;
@@ -39,7 +43,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if ((await getProducts(user.id)).length >= MAX_SAVED_RECORDS) {
+  if ((await getWorkspaceProducts(user)).length >= MAX_SAVED_RECORDS) {
     return NextResponse.json(
       {
         error: `Product limit reached. Delete a product to add another (maximum ${MAX_SAVED_RECORDS}).`,
@@ -48,14 +52,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const categories = await getCategories(user.id);
+  const categories = await getWorkspaceCategories(user);
   if (!categories.length) {
     return NextResponse.json(
       { error: "Create a category before adding products." },
       { status: 409 },
     );
   }
-  const product = await addProduct(user.id, {
+  const product = await addWorkspaceProduct(user, {
     id: `p-${randomUUID()}`,
     name: body.name.trim(),
     price: body.price,

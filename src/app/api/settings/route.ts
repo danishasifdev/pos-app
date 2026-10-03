@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSettings, saveSettings } from "@/lib/db";
+import { getWorkspaceSettings, saveWorkspaceSettings } from "@/lib/workspace";
 import { getCurrentUser } from "@/lib/auth";
 import { ThemeName } from "@/lib/types";
 import { noStoreApiResponse, privateApiResponse } from "@/lib/api-response";
@@ -15,15 +15,15 @@ const THEMES: ThemeName[] = [
 
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") {
+  if (user?.role === "admin") {
     return noStoreApiResponse({ error: "Unauthorized" }, 401);
   }
-  return privateApiResponse(await getSettings(user.id));
+  return privateApiResponse(await getWorkspaceSettings(user));
 }
 
 export async function PUT(req: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") {
+  if (user?.role === "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   let patch: Record<string, unknown>;
@@ -35,7 +35,7 @@ export async function PUT(req: NextRequest) {
       { status: 400 },
     );
   }
-  const current = await getSettings(user.id);
+  const current = await getWorkspaceSettings(user);
   const updated = {
     ...current,
     ...(typeof patch.storeName === "string" ? { storeName: patch.storeName } : {}),
@@ -48,6 +48,6 @@ export async function PUT(req: NextRequest) {
       ? { theme: patch.theme as ThemeName }
       : {}),
   };
-  await saveSettings(user.id, updated);
+  await saveWorkspaceSettings(user, updated);
   return NextResponse.json(updated);
 }

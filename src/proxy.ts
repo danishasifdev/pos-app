@@ -1,17 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSessionToken, SESSION_COOKIE } from "@/lib/auth";
 
+// Pages a signed-out visitor may reach. The terminal and the product list are
+// readable and fully usable without an account; only saving needs auth, and
+// those mutations are guarded by the API routes and the in-app sign-in prompt.
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/products",
+  "/login",
+  "/register",
+  "/admin/login",
+]);
+
+// Endpoints a signed-out visitor may reach. They read and write the throwaway
+// scratch workspace, never a real account. /api/admin/* and /api/receipts/[id]
+// stay signed-in only.
+const SCRATCH_API_PATHS = new Set(["/api/products", "/api/receipts", "/api/settings"]);
+const SCRATCH_API_PREFIXES = ["/api/products/"];
+
+function isScratchApi(pathname: string): boolean {
+  if (SCRATCH_API_PATHS.has(pathname)) return true;
+  return SCRATCH_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+/** Forwarded so server components can tell a full page load from an in-app
+ *  navigation. Next's own routing headers are not visible via headers(), but
+ *  they are readable here. */
+function withRequestKind(request: NextRequest): NextResponse {
+  // Next 16 tags in-app RSC navigations (and prefetches) with `next-url`;
+  // a full document load has no such header. Verified against the real
+  // browser: client-side nav sends next-url, a hard refresh does not.
+  const isInAppNavigation =
+    request.headers.has("next-url") ||
+    request.headers.get("rsc") === "1" ||
+    request.headers.get("next-router-state-tree") !== null;
+  const headers = new Headers(request.headers);
+  headers.set("x-pos-request", isInAppNavigation ? "navigation" : "document");
+  return NextResponse.next({ request: { headers } });
+}
+
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/admin/login" ||
+    PUBLIC_PATHS.has(pathname) ||
     pathname.startsWith("/api/auth/") ||
     pathname === "/api/cron/expire-accounts" ||
     pathname === "/api/health"
   ) {
-    return NextResponse.next();
+    return withRequestKind(request);
+  }
+
+  if (isScratchApi(pathname)) {
+    return withRequestKind(request);
   }
 
   const user = readSessionToken(request.cookies.get(SESSION_COOKIE)?.value);

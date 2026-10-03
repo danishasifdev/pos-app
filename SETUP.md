@@ -32,7 +32,7 @@
 
 6. Check the database connection at http://localhost:3000/api/health. A
    successful connection returns `{"status":"ok","database":"connected"}`.
-   On Vercel, open `https://YOUR_DEPLOYMENT_URL/api/health`. A failure returns
+   On Vercel, open `https://pos-app-seven-swart.vercel.app//api/health`. A failure returns
    HTTP 503 without exposing connection details.
 7. The portfolio demo workspace is public and has no sign-in. Anyone can use
    and modify its sample POS data. Visitors can create accounts to get isolated
