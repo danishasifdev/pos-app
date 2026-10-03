@@ -13,9 +13,11 @@ import { useToast } from "./ToastProvider";
 export function ReceiptDetail({
   receipt,
   settings,
+  ephemeral = false,
 }: {
   receipt: Receipt;
   settings: StoreSettings;
+  ephemeral?: boolean;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -64,12 +66,19 @@ export function ReceiptDetail({
 
       <div className="grid gap-4 md:grid-cols-[1fr_320px]">
         <div className="rounded-xl border border-border bg-surface p-5">
-          <h1 className="mb-1 text-lg font-semibold text-fg">
+          <h1 className="text-lg font-semibold text-fg">
             Receipt #{current.number}
           </h1>
-          <p className="mb-4 text-sm text-muted-fg">
+          <p className="text-sm text-muted-fg">
             {formatDateTime(current.createdAt)} · {current.cashier}
           </p>
+          {ephemeral && (
+            <p className="mb-4 mt-1 text-xs text-muted-fg">
+              Signed out — this receipt is temporary and is cleared when you
+              reload.
+            </p>
+          )}
+          {!ephemeral && <div className="mb-4" />}
 
           <ul className="mb-4 divide-y divide-border">
             {current.items.map((item, i) => (

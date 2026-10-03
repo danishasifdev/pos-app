@@ -9,8 +9,10 @@ import { useToast } from "./ToastProvider";
 
 export function SettingsForm({
   initialSettings,
+  ephemeral = false,
 }: {
   initialSettings: StoreSettings;
+  ephemeral?: boolean;
 }) {
   const { showToast } = useToast();
   const [settings, setSettings] = useState(initialSettings);
@@ -46,9 +48,16 @@ export function SettingsForm({
   return (
     <div className="mx-auto w-full max-w-2xl p-4 md:p-6">
       <h1 className="text-lg font-semibold tracking-tight text-fg">Store settings</h1>
-      <p className="mb-6 text-sm text-muted-fg">
+      <p className="text-sm text-muted-fg">
         Controls what prints on receipts and how the terminal looks.
       </p>
+{ephemeral && (
+        <p className="mt-1 text-xs text-muted-fg">
+    Signed out — this is your temporary demo workspace. Changes and sales are
+    cleared when you reload.
+  </p>
+)}
+      <div className="mb-6" />
 
       <div className="mb-6 rounded-xl border border-border bg-surface p-5 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold text-fg">Store details</h2>

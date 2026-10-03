@@ -19,9 +19,11 @@ const TABS: { id: Tab; label: string }[] = [
 export function UserDashboard({
   data,
   currencySymbol,
+  ephemeral = false,
 }: {
   data: UserDashboardData;
   currencySymbol: string;
+  ephemeral?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   const formatMoney = (amount: number) => `${currencySymbol}${amount.toFixed(2)}`;
@@ -36,6 +38,12 @@ export function UserDashboard({
         <p className="mt-1 text-sm text-muted-fg">
           Your sales, transactions, and account activity.
         </p>
+{ephemeral && (
+          <p className="mt-1 text-xs text-muted-fg">
+    Signed out — this is your temporary demo workspace. Changes and sales are
+    cleared when you reload.
+  </p>
+)}
       </header>
       <Tabs selected={tab} onSelect={setTab} />
 

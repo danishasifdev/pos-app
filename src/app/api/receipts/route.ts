@@ -73,9 +73,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (items.length === 0) {
+    // Every line referenced something the server does not know about. Say so
+    // plainly rather than implying the cart was empty.
     return NextResponse.json(
-      { error: "No valid items in cart" },
-      { status: 400 },
+      {
+        error:
+          "Those products are no longer available. Reload the page to get the current catalog, then rebuild your cart.",
+      },
+      { status: 409 },
     );
   }
 

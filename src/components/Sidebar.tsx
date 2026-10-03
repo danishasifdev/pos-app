@@ -11,6 +11,7 @@ import {
   UserRound,
   ShieldCheck,
   LayoutDashboard,
+  LogIn,
 } from "lucide-react";
 import { SessionUser } from "@/lib/auth";
 import { LogoutButton } from "./LogoutButton";
@@ -32,12 +33,18 @@ export function Sidebar({ user }: { user: SessionUser }) {
   return (
     <aside className="flex h-full w-16 shrink-0 flex-col items-center gap-1 border-r border-border bg-surface py-4 lg:w-56 lg:items-stretch lg:px-3">
       <div className="mb-5 flex items-center gap-2.5 px-2 md:px-1">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-          <Store aria-hidden="true" size={18} />
-        </div>
-        <span className="hidden text-sm font-semibold tracking-tight text-fg lg:inline">
-          Mall POS
-        </span>
+        <Link
+          href="/"
+          aria-label="homepage"
+          className="flex items-center gap-2"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <Store aria-hidden="true" size={18} />
+          </div>
+          <span className="hidden text-sm font-semibold tracking-tight text-fg lg:inline">
+            POS
+          </span>
+        </Link>
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">
@@ -81,7 +88,19 @@ export function Sidebar({ user }: { user: SessionUser }) {
             </p>
           </div>
         </div>
-        <LogoutButton />
+        {user.id !== "guest" ? (
+          <LogoutButton />
+        ) : (
+          <Link
+            href="/login"
+            aria-label="Sign out"
+            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 flex items-center justify-center gap-2"
+            type="button"
+          >
+            <LogIn aria-hidden="true" size={16} />
+            <span className="hidden lg:inline">Log in</span>
+          </Link>
+        )}
       </div>
     </aside>
   );
