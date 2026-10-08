@@ -195,3 +195,34 @@ body {
     margin: 4mm;
   }
 }
+/* -------------------------------------------------------------------------
+   Sidebar collapse
+   Labels are hidden below md (the sidebar is an icon rail there) and whenever
+   the sidebar is collapsed on a wider screen. Driving this from the
+   aside's data-collapsed attribute means nested labels such as LogoutButton's
+   follow along without being told about the collapsed state.
+------------------------------------------------------------------------- */
+.sidebar-label,
+.sidebar-label-block {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  [data-collapsed="false"] .sidebar-label {
+    display: inline;
+  }
+
+  [data-collapsed="false"] .sidebar-label-block {
+    display: block;
+  }
+}
+
+/* The cart is a stacked block on narrow screens and a side panel from md up,
+   where the user's dragged width applies. Set as a custom property so the
+   server-rendered default and the stored width cannot disagree. */
+@media (min-width: 48rem) {
+  .cart-panel {
+    position: relative;
+    width: var(--cart-width, 24rem);
+  }
+}

@@ -38,7 +38,7 @@ export function LogoutButton() {
         type="button"
       >
         <LogOut aria-hidden="true" size={18} />
-        <span className="hidden lg:inline">Sign out</span>
+        <span className="sidebar-label">Sign out</span>
       </button>
     </div>
   );

@@ -7,6 +7,7 @@ import { Category, Product, Receipt, StoreSettings } from "@/lib/types";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductGrid } from "./ProductGrid";
 import { Cart } from "./Cart";
+import { ResizablePanel } from "./ResizablePanel";
 import { PaymentModal, PaymentMethod } from "./PaymentModal";
 import { ReceiptPrintable } from "./ReceiptPrintable";
 import { round2 } from "@/lib/format";
@@ -186,7 +187,7 @@ export function PosTerminal({
         </div>
       </div>
 
-      <div className="h-[45vh] w-full shrink-0 md:h-auto md:w-72 lg:w-96">
+      <ResizablePanel>
         <Cart
           lines={lines}
           currencySymbol={settings.currencySymbol}
@@ -198,7 +199,7 @@ export function PosTerminal({
           onClear={clearCart}
           onCheckout={() => setShowPayment(true)}
         />
-      </div>
+      </ResizablePanel>
 
       {showPayment && (
         <PaymentModal
