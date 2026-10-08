@@ -22,6 +22,11 @@ const MAX_REGULAR_ACCOUNTS = 25;
 const INACTIVE_DAYS = 90;
 let client: ReturnType<typeof postgres> | undefined;
 
+const STATEMENT_TIMEOUT_MS = (() => {
+  const configured = Number(process.env.DB_STATEMENT_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : 15_000;
+})();
+
 function getClient() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString || connectionString.includes("YOUR_")) {
@@ -31,12 +36,36 @@ function getClient() {
     max: 5,
     idle_timeout: 20,
     connect_timeout: 10,
+    // Ceiling on a single statement so one pathological query fails fast
+    // instead of holding the request open until the platform kills the stream.
+    //
+    // NOTE: statement_timeout is a libpq connection parameter and its bare
+    // value is MILLISECONDS - `8` means 8ms, which cancelled every admin query.
+    // Keep the unit explicit. Override with DB_STATEMENT_TIMEOUT_MS if needed.
+    connection: { statement_timeout: STATEMENT_TIMEOUT_MS },
     prepare: false,
   });
   return client;
 }
 
-export async function checkDatabaseConnection(): Promise<boolean> {
+let schemaCheck: Promise<boolean> | null = null;
+
+/**
+ * Probes the schema by reading information_schema views, which on Supabase scan
+ * every relation in every schema (auth, storage, realtime, extensions) and can
+ * cost seconds. The schema cannot change while the process is alive, so the
+ * result is memoised instead of re-probed on every request.
+ */
+export function checkDatabaseConnection(): Promise<boolean> {
+  schemaCheck ??= probeDatabaseSchema().catch((error: unknown) => {
+    // do not cache a failure: the database may come back
+    schemaCheck = null;
+    throw error;
+  });
+  return schemaCheck;
+}
+
+async function probeDatabaseSchema(): Promise<boolean> {
   const sql = getClient();
   const [result] = await sql<{ settingsExists: boolean }[]>`
     SELECT (
@@ -501,6 +530,11 @@ export const getSettings = cache(async (accountId: string): Promise<StoreSetting
   }
   return settings;
 });
+
+/** Fallback used when an account has no settings row (e.g. an administrator). */
+export const DEFAULT_SETTINGS = {
+  theme: "slate" as const,
+};
 
 export async function saveSettings(
   accountId: string,

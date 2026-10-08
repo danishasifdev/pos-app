@@ -27,7 +27,10 @@ export default async function AppLayout({
   const settings = await getWorkspaceSettings(user).catch(() => null);
 
   return (
-    <ThemeProvider initialTheme={settings?.theme ?? DEFAULT_THEME}>
+    <ThemeProvider
+      initialTheme={settings?.theme ?? DEFAULT_THEME}
+      syncToAccount={!anonymous && user.role !== "admin"}
+    >
       <Sidebar
         user={user ?? { id: "guest", email: "Anonymous", role: "user" }}
       />

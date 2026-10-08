@@ -58,6 +58,20 @@ export async function getWorkspaceCategories(
 export async function getWorkspaceSettings(
   actor: Actor,
 ): Promise<StoreSettings> {
+  // An administrator has no workspace of their own, so there is nothing to
+  // read. Returning null-shaped data avoids a pointless query that also throws.
+  if (actor?.role === "admin") {
+    return {
+      storeName: "",
+      address: "",
+      phone: "",
+      taxRate: 0,
+      currencySymbol: "$",
+      receiptFooter: "",
+      theme: "slate" as const,
+      nextReceiptNumber: 1,
+    };
+  }
   return actor ? getSettings(actor.id) : (await readEphemeral()).settings;
 }
 

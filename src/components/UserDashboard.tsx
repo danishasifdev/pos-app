@@ -26,7 +26,8 @@ export function UserDashboard({
   ephemeral?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("overview");
-  const formatMoney = (amount: number) => `${currencySymbol}${amount.toFixed(2)}`;
+  const formatMoney = (amount: number) =>
+    `${currencySymbol}${amount.toFixed(2)}`;
 
   return (
     <main className="mx-auto w-full max-w-6xl p-4 md:p-6">
@@ -38,12 +39,12 @@ export function UserDashboard({
         <p className="mt-1 text-sm text-muted-fg">
           Your sales, transactions, and account activity.
         </p>
-{ephemeral && (
+        {ephemeral && (
           <p className="mt-1 text-xs text-muted-fg">
-    Signed out — this is your temporary demo workspace. Changes and sales are
-    cleared when you reload.
-  </p>
-)}
+            Signed out — this is your temporary demo workspace. Changes and
+            sales are cleared when you reload.
+          </p>
+        )}
       </header>
       <Tabs selected={tab} onSelect={setTab} />
 
@@ -52,9 +53,18 @@ export function UserDashboard({
           <StatsGrid
             items={[
               { label: "Sales today", value: formatMoney(data.salesToday) },
-              { label: "Sales this month", value: formatMoney(data.salesThisMonth) },
-              { label: "Completed transactions", value: String(data.transactionCount) },
-              { label: "Average transaction", value: formatMoney(data.averageTransaction) },
+              {
+                label: "Sales this month",
+                value: formatMoney(data.salesThisMonth),
+              },
+              {
+                label: "Completed transactions",
+                value: String(data.transactionCount),
+              },
+              {
+                label: "Average transaction",
+                value: formatMoney(data.averageTransaction),
+              },
             ]}
           />
           <SalesTrendChart
@@ -85,8 +95,14 @@ export function UserDashboard({
           <StatsGrid
             items={[
               { label: "Sales today", value: formatMoney(data.salesToday) },
-              { label: "Sales this month", value: formatMoney(data.salesThisMonth) },
-              { label: "Average sale", value: formatMoney(data.averageTransaction) },
+              {
+                label: "Sales this month",
+                value: formatMoney(data.salesThisMonth),
+              },
+              {
+                label: "Average sale",
+                value: formatMoney(data.averageTransaction),
+              },
               { label: "Voided transactions", value: String(data.voidedCount) },
             ]}
           />
@@ -103,7 +119,8 @@ export function UserDashboard({
             <div>
               <h2 className="font-semibold text-fg">Transactions</h2>
               <p className="text-sm text-muted-fg">
-                Most recent {data.recentReceipts.length} of up to 50 saved receipts.
+                Most recent {data.recentReceipts.length} of up to 50 saved
+                receipts.
               </p>
             </div>
             <Link
@@ -150,7 +167,7 @@ function Tabs({
       {TABS.map((tab) => (
         <button
           aria-current={selected === tab.id ? "page" : undefined}
-          className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${
+          className={`whitespace-nowrap cursor-pointer border-b-2 px-4 py-2.5 text-sm font-medium ${
             selected === tab.id
               ? "border-primary text-primary"
               : "border-transparent text-muted-fg hover:text-fg"
@@ -170,7 +187,10 @@ function StatsGrid({ items }: { items: { label: string; value: string }[] }) {
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {items.map((item) => (
-        <div className="rounded-xl border border-border bg-surface p-4" key={item.label}>
+        <div
+          className="rounded-xl border border-border bg-surface p-4"
+          key={item.label}
+        >
           <p className="text-xs font-medium text-muted-fg">{item.label}</p>
           <p className="mt-2 text-xl font-bold text-fg">{item.value}</p>
         </div>
@@ -198,11 +218,21 @@ function TransactionTable({
       <table className="w-full text-left text-sm">
         <thead className="bg-surface-muted text-xs uppercase tracking-wide text-muted-fg">
           <tr>
-            <th scope="col" className="px-4 py-3 font-medium">Receipt</th>
-            <th scope="col" className="px-4 py-3 font-medium">Date</th>
-            <th scope="col" className="px-4 py-3 font-medium">Items</th>
-            <th scope="col" className="px-4 py-3 font-medium">Payment</th>
-            <th scope="col" className="px-4 py-3 text-right font-medium">Total</th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Receipt
+            </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Date
+            </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Items
+            </th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              Payment
+            </th>
+            <th scope="col" className="px-4 py-3 text-right font-medium">
+              Total
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -213,20 +243,25 @@ function TransactionTable({
                   #{receipt.number}
                 </Link>
                 {receipt.voided && (
-                  <span className="ml-2 text-xs font-medium text-red-600">Voided</span>
+                  <span className="ml-2 text-xs font-medium text-red-600">
+                    Voided
+                  </span>
                 )}
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-muted-fg">
                 {formatDateTime(receipt.createdAt)}
               </td>
               <td className="px-4 py-3 text-muted-fg">
-                {receipt.items.map((item) => `${item.name} × ${item.quantity}`).join(", ")}
+                {receipt.items
+                  .map((item) => `${item.name} × ${item.quantity}`)
+                  .join(", ")}
               </td>
               <td className="px-4 py-3 capitalize text-muted-fg">
                 {receipt.paymentMethod}
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-fg">
-                {currencySymbol}{receipt.total.toFixed(2)}
+                {currencySymbol}
+                {receipt.total.toFixed(2)}
               </td>
             </tr>
           ))}

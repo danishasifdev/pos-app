@@ -45,9 +45,9 @@ export function AdminDashboard({
     null,
   );
   // When set, the Transactions tab is narrowed to this account.
-  const [transactionAccountId, setTransactionAccountId] = useState<string | null>(
-    null,
-  );
+  const [transactionAccountId, setTransactionAccountId] = useState<
+    string | null
+  >(null);
   const [selectedActivity, setSelectedActivity] = useState<{
     accountId: string;
     events: AccountActivity[];
@@ -324,7 +324,7 @@ export function AdminDashboard({
         {TABS.map((item) => (
           <button
             aria-current={tab === item.id ? "page" : undefined}
-            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${
+            className={`whitespace-nowrap border-b-2 cursor-pointer px-4 py-2.5 text-sm font-medium ${
               tab === item.id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-fg hover:text-fg"
@@ -629,7 +629,9 @@ export function AdminDashboard({
             </p>
           ) : (
             <AdminTransactionTable
-              transactions={transactionResults[transactionScope ?? "all"].transactions}
+              transactions={
+                transactionResults[transactionScope ?? "all"].transactions
+              }
             />
           )}
         </section>

@@ -167,6 +167,19 @@ body {
   body * {
     visibility: hidden;
   }
+  /* visibility:hidden still lays the element out, so every product tile and
+     table row on screen was being measured for a print job that only needs the
+     receipt. Where :has() is supported, drop everything that is not on the
+     receipt's branch so the browser skips that layout work entirely.
+     The receipt itself must be excluded: it does not contain itself, so a bare
+     :not(:has(...)) would match and hide it. The visibility rules above stay
+     as the fallback for engines without :has(). */
+  body
+    *:not(#printable-receipt):not(#printable-receipt *):not(
+      :has(#printable-receipt)
+    ) {
+    display: none;
+  }
   #printable-receipt,
   #printable-receipt * {
     visibility: visible;
