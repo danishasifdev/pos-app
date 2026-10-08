@@ -13,7 +13,7 @@ export function CategoryTabs({
   onChange: (id: string | "all") => void;
 }) {
   return (
-    <div className="flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 pt-4 md:px-6">
+    <div className="flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 pt-2 md:pt-4 md:px-6">
       <TabButton
         label="All items"
         selected={active === "all"}

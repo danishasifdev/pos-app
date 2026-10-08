@@ -25,17 +25,25 @@ export function Cart({
   onClear: () => void;
   onCheckout: () => void;
 }) {
-  const subtotal = round2(lines.reduce((sum, l) => sum + l.product.price * l.quantity, 0));
-  const taxTotal = round2(lines.reduce(
-    (sum, l) => sum + (l.product.taxable ? l.product.price * l.quantity * (taxRate / 100) : 0),
-    0
-  ));
+  const subtotal = round2(
+    lines.reduce((sum, l) => sum + l.product.price * l.quantity, 0),
+  );
+  const taxTotal = round2(
+    lines.reduce(
+      (sum, l) =>
+        sum +
+        (l.product.taxable
+          ? l.product.price * l.quantity * (taxRate / 100)
+          : 0),
+      0,
+    ),
+  );
   const total = Math.max(0, round2(subtotal + taxTotal - discount));
   const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
 
   return (
-    <div className="flex h-full w-full min-w-0 flex-col border-l border-border bg-surface">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+    <div className="flex h-full w-full min-w-0 flex-col md:border-l border-border bg-surface">
+      <div className="flex items-center justify-between border-b border-border px-4 md:py-3.5 py-2 border-t md:border-t-0">
         <div className="flex items-center gap-2">
           <ShoppingBag aria-hidden="true" size={16} className="text-muted-fg" />
           <h2 className="text-sm font-semibold text-fg">Current order</h2>
@@ -83,7 +91,9 @@ export function Cart({
                   <span aria-hidden="true">{line.product.emoji}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-fg">{line.product.name}</p>
+                  <p className="truncate text-sm font-medium text-fg">
+                    {line.product.name}
+                  </p>
                   <p className="text-xs text-muted-fg">
                     {currencySymbol}
                     {line.product.price.toFixed(2)} each
@@ -124,13 +134,22 @@ export function Cart({
         )}
       </div>
 
-      <div className="border-t border-border bg-surface p-4">
-        <SummaryRow label="Subtotal" value={`${currencySymbol}${subtotal.toFixed(2)}`} />
-        <SummaryRow label={`Tax (${taxRate}%)`} value={`${currencySymbol}${taxTotal.toFixed(2)}`} />
+      <div className="border-t border-border bg-surface p-4 py-2 md:py-4">
+        <SummaryRow
+          label="Subtotal"
+          value={`${currencySymbol}${subtotal.toFixed(2)}`}
+        />
+        <SummaryRow
+          label={`Tax (${taxRate}%)`}
+          value={`${currencySymbol}${taxTotal.toFixed(2)}`}
+        />
         {discount > 0 && (
-          <SummaryRow label="Discount" value={`-${currencySymbol}${discount.toFixed(2)}`} />
+          <SummaryRow
+            label="Discount"
+            value={`-${currencySymbol}${discount.toFixed(2)}`}
+          />
         )}
-        <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+        <div className="md:mt-3 flex items-center justify-between border-t border-border md:pt-3 mt-1 pt-1">
           <span className="text-sm font-semibold text-fg">Total</span>
           <span className="text-xl font-bold tabular-nums text-fg">
             {currencySymbol}
@@ -141,7 +160,7 @@ export function Cart({
           disabled={lines.length === 0}
           onClick={onCheckout}
           type="button"
-          className="mt-4 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:bg-surface-muted disabled:text-muted-fg disabled:shadow-none"
+          className="mt-2 md:mt-4 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:bg-surface-muted disabled:text-muted-fg disabled:shadow-none"
         >
           Charge {currencySymbol}
           {total.toFixed(2)}

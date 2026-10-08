@@ -24,14 +24,14 @@ export function ProductGrid({
   }
 
   return (
-    <div className="grid min-w-0 grid-cols-2 gap-3 p-4 lg:grid-cols-4 xl:grid-cols-5 md:p-6">
+    <div className="grid min-w-0 grid-cols-2 gap-2 md:gap-3 px-4 py-2 lg:grid-cols-4 xl:grid-cols-5 md:p-6">
       {products.map((product) => (
         <button
           key={product.id}
           type="button"
           onClick={() => onAdd(product)}
           aria-label={`Add ${product.name} for ${currencySymbol}${product.price.toFixed(2)}`}
-          className="group relative flex h-full w-full flex-col gap-2.5 overflow-hidden rounded-2xl border border-border bg-surface p-3 text-left shadow-sm outline-none transition duration-150 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.97] active:shadow-sm motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:gap-3 sm:p-3.5 items-center"
+          className="group relative flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-surface p-3 text-left shadow-sm outline-none transition duration-150 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.97] active:shadow-sm motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 gap-1 md:gap-2 lg:gap-3 sm:p-3.5 items-center"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-muted text-[26px] leading-none sm:h-14 sm:w-14 sm:text-[30px]">
             <span aria-hidden="true">{product.emoji}</span>

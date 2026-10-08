@@ -41,8 +41,8 @@ export function Sidebar({ user }: { user: SessionUser }) {
 
   return (
     <aside
-      className={`flex h-full w-16 shrink-0 flex-col gap-1 border-r border-border bg-surface py-4 ${
-        collapsed ? "md:px-0 items-center" : "md:w-56 md:px-3"
+      className={`flex h-full items-center w-16 shrink-0 flex-col gap-1 border-r border-border bg-surface py-4 ${
+        collapsed ? "md:px-0" : "md:w-fit md:px-3 md:items-start"
       }`}
       data-collapsed={collapsed}
     >
