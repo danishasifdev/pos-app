@@ -10,15 +10,15 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Mall POS",
-    template: "%s · Mall POS",
+    default: "POS",
+    template: "%s · POS",
   },
   description: "Point of sale terminal for retail kiosks and mall stores",
-  applicationName: "Mall POS",
+  applicationName: "POS",
   openGraph: {
     type: "website",
-    siteName: "Mall POS",
-    title: "Mall POS",
+    siteName: "POS",
+    title: "POS",
     description: "Point of sale terminal for retail kiosks and mall stores",
     url: SITE_URL,
   },
@@ -43,7 +43,11 @@ export default async function RootLayout({
     user && user.role !== "admin" ? await getSettings(user.id) : null;
 
   return (
-    <html lang="en" data-theme={settings?.theme ?? DEFAULT_THEME} className="h-full antialiased">
+    <html
+      lang="en"
+      data-theme={settings?.theme ?? DEFAULT_THEME}
+      className="h-full antialiased"
+    >
       <body className="flex h-full min-h-screen">
         <ToastProvider>{children}</ToastProvider>
       </body>

@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
-import { getReceiptById, getSettings } from "@/lib/db";
+import {
+  getWorkspaceReceipt,
+  getWorkspaceSettings,
+} from "@/lib/workspace";
 import { ReceiptDetail } from "@/components/ReceiptDetail";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -11,13 +14,16 @@ export default async function ReceiptDetailPage({
 }) {
   const { id } = await params;
   const user = await getCurrentUser();
-  if (!user || user.role === "admin") redirect(user?.role === "admin" ? "/admin" : "/login");
+  if (user?.role === "admin") redirect("/admin");
+
   const [receipt, settings] = await Promise.all([
-    getReceiptById(user.id, id),
-    getSettings(user.id),
+    getWorkspaceReceipt(user, id),
+    getWorkspaceSettings(user),
   ]);
 
   if (!receipt) notFound();
 
-  return <ReceiptDetail receipt={receipt} settings={settings} />;
+  return (
+    <ReceiptDetail receipt={receipt} settings={settings} ephemeral={!user} />
+  );
 }

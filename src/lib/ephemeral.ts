@@ -1,6 +1,5 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 import type { Category, Product, Receipt, StoreSettings } from "./types";
 import {
   demoCategoryDefinitions,
@@ -54,8 +53,12 @@ function seed(): EphemeralState {
   const idByKey = new Map(
     categories.map((category) => [category.id.slice(2), category.id]),
   );
+  // Ids are derived from the sku, not random, so that re-seeding is idempotent.
+  // With random ids a second tab (or any reload) would hand the browser a
+  // product id the server no longer has, and checkout would fail with
+  // "No valid items in cart" for a cart that visibly has items.
   const products: Product[] = demoProductDefinitions.map((product) => ({
-    id: `e-${randomUUID()}`,
+    id: `e-${product.sku.toLowerCase()}`,
     name: product.name,
     price: product.price,
     categoryId:

@@ -167,6 +167,19 @@ body {
   body * {
     visibility: hidden;
   }
+  /* visibility:hidden still lays the element out, so every product tile and
+     table row on screen was being measured for a print job that only needs the
+     receipt. Where :has() is supported, drop everything that is not on the
+     receipt's branch so the browser skips that layout work entirely.
+     The receipt itself must be excluded: it does not contain itself, so a bare
+     :not(:has(...)) would match and hide it. The visibility rules above stay
+     as the fallback for engines without :has(). */
+  body
+    *:not(#printable-receipt):not(#printable-receipt *):not(
+      :has(#printable-receipt)
+    ) {
+    display: none;
+  }
   #printable-receipt,
   #printable-receipt * {
     visibility: visible;
@@ -180,5 +193,36 @@ body {
   @page {
     size: 80mm auto;
     margin: 4mm;
+  }
+}
+/* -------------------------------------------------------------------------
+   Sidebar collapse
+   Labels are hidden below md (the sidebar is an icon rail there) and whenever
+   the sidebar is collapsed on a wider screen. Driving this from the
+   aside's data-collapsed attribute means nested labels such as LogoutButton's
+   follow along without being told about the collapsed state.
+------------------------------------------------------------------------- */
+.sidebar-label,
+.sidebar-label-block {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  [data-collapsed="false"] .sidebar-label {
+    display: inline;
+  }
+
+  [data-collapsed="false"] .sidebar-label-block {
+    display: block;
+  }
+}
+
+/* The cart is a stacked block on narrow screens and a side panel from md up,
+   where the user's dragged width applies. Set as a custom property so the
+   server-rendered default and the stored width cannot disagree. */
+@media (min-width: 48rem) {
+  .cart-panel {
+    position: relative;
+    width: var(--cart-width, 24rem);
   }
 }

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to your private Mall POS workspace.",
+  description: "Sign in to your private POS workspace.",
 };
 
 function destination(user: SessionUser) {

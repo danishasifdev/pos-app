@@ -67,9 +67,18 @@ function writeStored(next: ThemeName) {
 
 export function ThemeProvider({
   initialTheme,
+  syncToAccount = true,
   children,
 }: {
   initialTheme: ThemeName;
+  /**
+   * Whether to also write the choice to the server. It only helps for a real
+   * account: an administrator has no settings row (/api/settings 401s) and a
+   * signed-out visitor's scratch settings are wiped on reload. Both are served
+   * correctly by localStorage alone, so skip the request entirely rather than
+   * firing one that cannot succeed.
+   */
+  syncToAccount?: boolean;
   children: React.ReactNode;
 }) {
   const stored = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
@@ -79,17 +88,21 @@ export function ThemeProvider({
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  const setTheme = useCallback((next: ThemeName) => {
-    writeStored(next);
-    document.documentElement.setAttribute("data-theme", next);
-    // best effort sync back to the store settings so the server-rendered
-    // default matches next time, ignored if the request fails
-    fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theme: next }),
-    }).catch(() => {});
-  }, []);
+  const setTheme = useCallback(
+    (next: ThemeName) => {
+      writeStored(next);
+      document.documentElement.setAttribute("data-theme", next);
+      if (!syncToAccount) return;
+      // best effort sync back to the store settings so the server-rendered
+      // default matches next time, ignored if the request fails
+      fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: next }),
+      }).catch(() => {});
+    },
+    [syncToAccount],
+  );
 
   const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
 

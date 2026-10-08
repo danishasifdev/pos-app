@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
+import { cache } from "react";
 import postgres from "postgres";
 import { demoCategoryDefinitions, demoProductDefinitions, demoSettings } from "./seed";
 import {
   AccountUser,
   AccountActivity,
+  AdminUserProfile,
   AdminAccountSummary,
   AdminDashboardData,
   AdminTransaction,
@@ -20,6 +22,11 @@ const MAX_REGULAR_ACCOUNTS = 25;
 const INACTIVE_DAYS = 90;
 let client: ReturnType<typeof postgres> | undefined;
 
+const STATEMENT_TIMEOUT_MS = (() => {
+  const configured = Number(process.env.DB_STATEMENT_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : 15_000;
+})();
+
 function getClient() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString || connectionString.includes("YOUR_")) {
@@ -29,12 +36,36 @@ function getClient() {
     max: 5,
     idle_timeout: 20,
     connect_timeout: 10,
+    // Ceiling on a single statement so one pathological query fails fast
+    // instead of holding the request open until the platform kills the stream.
+    //
+    // NOTE: statement_timeout is a libpq connection parameter and its bare
+    // value is MILLISECONDS - `8` means 8ms, which cancelled every admin query.
+    // Keep the unit explicit. Override with DB_STATEMENT_TIMEOUT_MS if needed.
+    connection: { statement_timeout: STATEMENT_TIMEOUT_MS },
     prepare: false,
   });
   return client;
 }
 
-export async function checkDatabaseConnection(): Promise<boolean> {
+let schemaCheck: Promise<boolean> | null = null;
+
+/**
+ * Probes the schema by reading information_schema views, which on Supabase scan
+ * every relation in every schema (auth, storage, realtime, extensions) and can
+ * cost seconds. The schema cannot change while the process is alive, so the
+ * result is memoised instead of re-probed on every request.
+ */
+export function checkDatabaseConnection(): Promise<boolean> {
+  schemaCheck ??= probeDatabaseSchema().catch((error: unknown) => {
+    // do not cache a failure: the database may come back
+    schemaCheck = null;
+    throw error;
+  });
+  return schemaCheck;
+}
+
+async function probeDatabaseSchema(): Promise<boolean> {
   const sql = getClient();
   const [result] = await sql<{ settingsExists: boolean }[]>`
     SELECT (
@@ -172,43 +203,47 @@ export async function isAccountSessionActive(
 ): Promise<boolean> {
   if (role === "demo") return id === "demo";
   const sql = getClient();
-  return sql.begin(async (tx) => {
-    const [row] = await tx<{ email: string; active: boolean }[]>`
-      UPDATE users
-      SET
-        status = CASE
-          WHEN role = 'user'
-            AND (
-              last_login_at IS NULL
-              OR last_login_at < NOW() - (${INACTIVE_DAYS} * INTERVAL '1 day')
-            )
-          THEN 'disabled'
-          ELSE status
-        END,
-        last_login_at = CASE
-          WHEN role = 'user'
-            AND (
-              last_login_at IS NULL
-              OR last_login_at < NOW() - INTERVAL '1 day'
-            )
-          THEN NOW()
-          ELSE last_login_at
-        END
-      WHERE id = ${id}
-        AND status = 'active'
-        AND role = ${role}
-      RETURNING email, status = 'active' AS active
-    `;
-    if (row && !row.active) {
-      await tx`
-        INSERT INTO account_activity (
-          account_id, account_email, actor_id, actor_email, event_type
-        )
-        VALUES (${id}, ${row.email}, 'system', 'System', 'account_disabled')
+
+  // A plain read, not a write transaction. This runs on every authenticated
+  // request, so BEGIN + UPDATE + COMMIT (three round trips to the pooler on
+  // every page view) was pure overhead.
+  const [row] = await sql<{ status: string; lastLoginAt: Date | null }[]>`
+    SELECT status, last_login_at AS "lastLoginAt"
+    FROM users
+    WHERE id = ${id} AND role = ${role}
+  `;
+  if (!row || row.status !== "active") return false;
+
+  const lastSeen = row.lastLoginAt?.getTime() ?? 0;
+  const idleMs = Date.now() - lastSeen;
+
+  // Inactivity sweep, unchanged in behaviour but only for user accounts.
+  if (role === "user" && (lastSeen === 0 || idleMs > INACTIVE_DAYS * 86_400_000)) {
+    await sql.begin(async (tx) => {
+      const [disabled] = await tx<{ email: string }[]>`
+        UPDATE users
+        SET status = 'disabled'
+        WHERE id = ${id} AND status = 'active'
+        RETURNING email
       `;
-    }
-    return row?.active ?? false;
-  });
+      if (disabled) {
+        await tx`
+          INSERT INTO account_activity (
+            account_id, account_email, actor_id, actor_email, event_type
+          )
+          VALUES (${id}, ${disabled.email}, 'system', 'System', 'account_disabled')
+        `;
+      }
+    });
+    return false;
+  }
+
+  // Refresh last_login_at at most hourly rather than on every request.
+  if (role === "user" && idleMs > 3_600_000) {
+    await sql`UPDATE users SET last_login_at = NOW() WHERE id = ${id}`;
+  }
+
+  return true;
 }
 
 export type LoginRecord = {
@@ -271,7 +306,10 @@ export async function listAccounts(): Promise<AccountUser[]> {
       CASE role WHEN 'admin' THEN 0 WHEN 'demo' THEN 1 ELSE 2 END,
       created_at
   `;
-  await expireInactiveAccounts();
+  // NB: no expireInactiveAccounts() here. It is a write transaction (plus an
+  // INSERT per expired account) and this function runs on every admin page
+  // load. The stale-status fallback below keeps the display correct, and the
+  // Vercel cron at /api/cron/expire-accounts does the actual sweep.
   return rows.map((row) =>
     row.role === "user" &&
     row.status === "active" &&
@@ -472,7 +510,12 @@ export async function deleteProduct(accountId: string, id: string): Promise<void
   await sql`DELETE FROM products WHERE account_id = ${accountId} AND id = ${id}`;
 }
 
-export async function getSettings(accountId: string): Promise<StoreSettings> {
+/**
+ * Wrapped in cache() because the authenticated shell layout and the page below
+ * it both need the settings; without it the same row is fetched twice per
+ * request, which is two round trips to the pooler instead of one.
+ */
+export const getSettings = cache(async (accountId: string): Promise<StoreSettings> => {
   const sql = getClient();
   const [settings] = await sql<StoreSettings[]>`
     SELECT
@@ -486,7 +529,12 @@ export async function getSettings(accountId: string): Promise<StoreSettings> {
     throw new Error(`Settings are missing for account ${accountId}.`);
   }
   return settings;
-}
+});
+
+/** Fallback used when an account has no settings row (e.g. an administrator). */
+export const DEFAULT_SETTINGS = {
+  theme: "slate" as const,
+};
 
 export async function saveSettings(
   accountId: string,
@@ -792,6 +840,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
 export async function getAdminTransactions(
   accountId?: string,
+  limit = 200,
 ): Promise<AdminTransaction[]> {
   const sql = getClient();
   const rows = await sql<
@@ -816,7 +865,7 @@ export async function getAdminTransactions(
     JOIN settings ON settings.account_id = receipts.account_id AND settings.id = 1
     ${accountId ? sql`WHERE receipts.account_id = ${accountId}` : sql``}
     ORDER BY receipts.created_at DESC
-    LIMIT 1300
+    LIMIT ${Math.max(1, Math.min(limit, 500))}
   `;
   return rows.map((row) => ({
     ...receiptFromRow(row),
@@ -902,4 +951,80 @@ export async function getAccountActivity(
 ): Promise<AccountActivity[]> {
   const sql = getClient();
   return getRecentAccountActivity(sql, accountId);
+}
+
+/** Single-account view for the admin console: settings, sales stats, the most
+ *  recent receipts and the full activity log. */
+export async function getAccountProfile(
+  accountId: string,
+): Promise<AdminUserProfile | null> {
+  const sql = getClient();
+  const [accountRows, settingsRows, statsRows, receipts, activity] =
+    await Promise.all([
+      sql<UserRow[]>`
+        SELECT
+          id, email, password_hash AS "passwordHash", role, status,
+          created_at AS "createdAt", last_login_at AS "lastLoginAt"
+        FROM users WHERE id = ${accountId}
+      `,
+      sql<StoreSettings[]>`
+        SELECT
+          store_name AS "storeName", address, phone, tax_rate AS "taxRate",
+          currency_symbol AS "currencySymbol", receipt_footer AS "receiptFooter",
+          theme, next_receipt_number AS "nextReceiptNumber"
+        FROM settings WHERE account_id = ${accountId} AND id = 1
+      `,
+      sql<
+        {
+          salesTotal: number;
+          transactionCount: number;
+          voidedCount: number;
+          averageTransaction: number;
+          productCount: number;
+          lastTransactionAt: Date | null;
+        }[]
+      >`
+        SELECT
+          COALESCE(SUM(receipts.total) FILTER (WHERE NOT receipts.voided), 0)::float8 AS "salesTotal",
+          COUNT(receipts.id) FILTER (WHERE NOT receipts.voided)::int AS "transactionCount",
+          COUNT(receipts.id) FILTER (WHERE receipts.voided)::int AS "voidedCount",
+          COALESCE(AVG(receipts.total) FILTER (WHERE NOT receipts.voided), 0)::float8 AS "averageTransaction",
+          (SELECT COUNT(*)::int FROM products WHERE products.account_id = users.id) AS "productCount",
+          MAX(receipts.created_at) AS "lastTransactionAt"
+        FROM users
+        LEFT JOIN receipts ON receipts.account_id = users.id
+        WHERE users.id = ${accountId}
+        GROUP BY users.id
+      `,
+      sql<ReceiptRow[]>`
+        SELECT
+          id, number, created_at AS "createdAt", items, subtotal,
+          tax_rate AS "taxRate", tax_total AS "taxTotal", discount, total,
+          payment_method AS "paymentMethod", amount_tendered AS "amountTendered",
+          change_due AS "changeDue", cashier, note, voided
+        FROM receipts
+        WHERE account_id = ${accountId}
+        ORDER BY created_at DESC
+        LIMIT 25
+      `,
+      getAccountActivity(accountId),
+    ]);
+
+  const account = accountRows[0];
+  if (!account) return null;
+  const stats = statsRows[0];
+  return {
+    account: accountUser(account),
+    settings: settingsRows[0] ?? null,
+    stats: {
+      salesTotal: stats?.salesTotal ?? 0,
+      transactionCount: stats?.transactionCount ?? 0,
+      voidedCount: stats?.voidedCount ?? 0,
+      averageTransaction: stats?.averageTransaction ?? 0,
+      productCount: stats?.productCount ?? 0,
+      lastTransactionAt: stats?.lastTransactionAt?.toISOString() ?? null,
+    },
+    recentReceipts: receipts.map(receiptFromRow),
+    activity,
+  };
 }

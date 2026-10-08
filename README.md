@@ -1,4 +1,4 @@
-# Mall POS
+# POS
 
 A point-of-sale terminal for mall kiosks and small retail, running in production
 at a kiosk. Cash/card checkout with change calculation, 80mm thermal receipt
@@ -36,15 +36,15 @@ is discarded on reload. Use disposable data only.
 Every account gets its own isolated workspace in Postgres — separate products,
 categories, settings, receipts and sales history.
 
-You do not need an account to use the terminal. A signed-out visitor gets a
-throwaway scratch workspace seeded with sample products, and can do everything a
-real cashier does: search, build a cart, add and edit products, take cash/card
-payment, and print a receipt. Those writes go to `data/ephemeral.json` (git
+You do not need an account to use the app. A signed-out visitor gets a
+throwaway scratch workspace seeded with sample products, and the full navigation
+— terminal, dashboard, receipts, products, settings. They can search, build a
+cart, add and edit products, take cash/card payment, print a receipt, browse the
+dashboard and void a sale. Those writes go to `data/ephemeral.json` (git
 ignored) and are **erased the moment the page is reloaded** — so a demo sale
 numbers, totals and prints correctly without ever being kept. In-app navigation
-does not wipe it, so you can move between the terminal and the product manager
-mid-session. The banner, the product manager and the receipt screen all say so
-plainly, and each points at creating a free account.
+does not wipe it, so the whole flow is usable in one sitting. The banner and each
+page say so plainly, and each points at creating a free account.
 
 `APP_SESSION_SECRET` signs the session cookie; `CRON_SECRET` authorizes the
 daily inactivity cleanup. Regular accounts are disabled after 90 days without a

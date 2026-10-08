@@ -11,9 +11,11 @@ const METHOD_ICON = { cash: Banknote, card: CreditCard, mobile: Smartphone } as 
 export function ReceiptsList({
   receipts,
   currencySymbol,
+  ephemeral = false,
 }: {
   receipts: Receipt[];
   currencySymbol: string;
+  ephemeral?: boolean;
 }) {
   const [query, setQuery] = useState("");
 
@@ -40,9 +42,15 @@ export function ReceiptsList({
             {receipts.length} saved · {currencySymbol}
             {todayTotal.toFixed(2)} taken today
           </p>
+{ephemeral && (
+            <p className="mt-1 text-xs text-muted-fg">
+    Signed out — this is your temporary demo workspace. Changes and sales are
+    cleared when you reload.
+  </p>
+)}
         </div>
         <div className="relative">
-          <Search aria-hidden="true" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg" />
+          <Search aria-hidden="true" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg" />
           <input
             aria-label="Search receipts"
             type="search"
@@ -57,8 +65,12 @@ export function ReceiptsList({
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-center">
           <ReceiptIcon aria-hidden="true" size={28} className="text-muted-fg" />
-          <p className="text-sm font-medium text-fg">No receipts found</p>
-          <p className="text-xs text-muted-fg">Sales you complete will show up here automatically.</p>
+          <p className="text-sm font-medium text-fg">No receipts yet</p>
+          <p className="text-xs text-muted-fg">
+            {ephemeral
+              ? "Sales you ring up appear here — until you reload, when they are cleared."
+              : "Sales you complete will show up here automatically."}
+          </p>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">

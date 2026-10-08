@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { LoaderCircle } from "lucide-react";
 import {
   AccountActivity,
@@ -8,15 +9,17 @@ import {
   AdminTransaction,
 } from "@/lib/types";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { AdminUserProfilePanel } from "./AdminUserProfile";
 import { DashboardActivity } from "./DashboardActivity";
 import { SalesTrendChart } from "./SalesTrendChart";
 import { useToast } from "./ToastProvider";
 
-type Tab = "overview" | "users" | "transactions" | "activity";
+type Tab = "overview" | "users" | "profile" | "transactions" | "activity";
 type AccountFilter = "all" | "active" | "disabled" | "demo";
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "users", label: "Users" },
+  { id: "profile", label: "User profile" },
   { id: "transactions", label: "Transactions" },
   { id: "activity", label: "Activity history" },
 ];
@@ -35,11 +38,16 @@ export function AdminDashboard({
   viewerEmail: string;
 }) {
   const { showToast } = useToast();
+  const router = useRouter();
   const [data, setData] = useState(initialData);
   const [tab, setTab] = useState<Tab>("overview");
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
     null,
   );
+  // When set, the Transactions tab is narrowed to this account.
+  const [transactionAccountId, setTransactionAccountId] = useState<
+    string | null
+  >(null);
   const [selectedActivity, setSelectedActivity] = useState<{
     accountId: string;
     events: AccountActivity[];
@@ -80,7 +88,7 @@ export function AdminDashboard({
   );
   const transactionScope =
     tab === "transactions"
-      ? "all"
+      ? (transactionAccountId ?? "all")
       : tab === "users" && selectedAccount
         ? selectedAccount.id
         : null;
@@ -316,7 +324,7 @@ export function AdminDashboard({
         {TABS.map((item) => (
           <button
             aria-current={tab === item.id ? "page" : undefined}
-            className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium ${
+            className={`whitespace-nowrap border-b-2 cursor-pointer px-4 py-2.5 text-sm font-medium ${
               tab === item.id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-fg hover:text-fg"
@@ -437,9 +445,10 @@ export function AdminDashboard({
             <AccountTable
               accounts={filteredAccounts}
               selectedId={selectedAccountId}
-              onSelect={(id) =>
-                setSelectedAccountId((current) => (current === id ? null : id))
-              }
+              onSelect={(id) => {
+                setSelectedAccountId(id);
+                setTab("profile");
+              }}
               onToggleStatus={(account) =>
                 void changeStatus(
                   account.id,
@@ -540,16 +549,69 @@ export function AdminDashboard({
         </div>
       )}
 
+      {tab === "profile" && selectedAccountId && (
+        <AdminUserProfilePanel
+          accountId={selectedAccountId}
+          onBack={() => setTab("users")}
+          onChanged={() => router.refresh()}
+          onDeleted={() => {
+            setSelectedAccountId(null);
+            setTab("users");
+            router.refresh();
+          }}
+          onViewReceipts={(id) => {
+            setSelectedAccountId(id);
+            setTransactionAccountId(id);
+            setTab("transactions");
+          }}
+        />
+      )}
+
+      {tab === "profile" && !selectedAccountId && (
+        <section className="rounded-xl border border-dashed border-border py-16 text-center">
+          <p className="text-sm font-medium text-fg">No account selected</p>
+          <p className="mt-1 text-sm text-muted-fg">
+            Pick an account from the Users tab to see its profile, receipts and
+            history.
+          </p>
+          <button
+            className="mt-4 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-muted"
+            onClick={() => setTab("users")}
+            type="button"
+          >
+            Go to Users
+          </button>
+        </section>
+      )}
+
       {tab === "transactions" && (
         <section>
-          <div className="mb-3">
-            <h2 className="font-semibold text-fg">All transactions</h2>
-            <p className="text-sm text-muted-fg">
-              Includes voided receipts; sales totals exclude voided
-              transactions.
-            </p>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold text-fg">
+                {transactionAccountId
+                  ? `Receipts for ${
+                      data.accounts.find((a) => a.id === transactionAccountId)
+                        ?.email ?? "this account"
+                    }`
+                  : "All transactions"}
+              </h2>
+              <p className="text-sm text-muted-fg">
+                Includes voided receipts; sales totals exclude voided
+                transactions. Showing the most recent 200.
+              </p>
+            </div>
+            {transactionAccountId && (
+              <button
+                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-muted"
+                onClick={() => setTransactionAccountId(null)}
+                type="button"
+              >
+                Show all workspaces
+              </button>
+            )}
           </div>
-          {!transactionResults.all ? (
+          {!transactionResults[transactionScope ?? "all"] ? (
             <p
               aria-live="polite"
               className="flex items-center gap-2 text-sm text-muted-fg"
@@ -561,13 +623,15 @@ export function AdminDashboard({
               />
               Loading transactions…
             </p>
-          ) : transactionResults.all.error ? (
+          ) : transactionResults[transactionScope ?? "all"].error ? (
             <p className="text-sm text-red-700">
-              {transactionResults.all.error}
+              {transactionResults[transactionScope ?? "all"].error}
             </p>
           ) : (
             <AdminTransactionTable
-              transactions={transactionResults.all.transactions}
+              transactions={
+                transactionResults[transactionScope ?? "all"].transactions
+              }
             />
           )}
         </section>
@@ -643,13 +707,20 @@ function AccountTable({
         <tbody className="divide-y divide-border">
           {accounts.map((account) => (
             <tr
-              className={selectedId === account.id ? "bg-accent-soft" : ""}
+              className={`cursor-pointer transition-colors hover:bg-surface-muted ${
+                selectedId === account.id ? "bg-accent-soft" : ""
+              }`}
               key={account.id}
+              onClick={() => onSelect(account.id)}
             >
               <td className="px-4 py-3">
                 <button
-                  className="text-left font-semibold text-primary underline"
-                  onClick={() => onSelect(account.id)}
+                  aria-label={`Open profile for ${account.email}`}
+                  className="text-left font-semibold text-primary"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(account.id);
+                  }}
                   type="button"
                 >
                   {account.email}
@@ -683,7 +754,10 @@ function AccountTable({
                         aria-busy={workingId === account.id}
                         className="inline-flex items-center gap-1 font-semibold text-primary underline disabled:opacity-50"
                         disabled={workingId === account.id}
-                        onClick={() => onToggleStatus(account)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onToggleStatus(account);
+                        }}
                         type="button"
                       >
                         {workingId === account.id && (
@@ -703,7 +777,10 @@ function AccountTable({
                         aria-busy={workingId === account.id}
                         className="inline-flex items-center gap-1 font-semibold text-red-700 underline disabled:opacity-50"
                         disabled={workingId === account.id}
-                        onClick={() => onDelete(account)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onDelete(account);
+                        }}
                         type="button"
                       >
                         {workingId === account.id && (

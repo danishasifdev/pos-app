@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Administrator sign in",
-  description: "Sign in to the Mall POS administrator console.",
+  description: "Sign in to the POS administrator console.",
 };
 
 export default async function AdminLoginPage() {

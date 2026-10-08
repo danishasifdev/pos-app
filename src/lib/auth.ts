@@ -89,8 +89,16 @@ export function readSessionToken(token: string | undefined): SessionUser | null 
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const cookieStore = await cookies();
   const session = readSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
-  if (session) {
-    if (await isAccountSessionActive(session.id, session.role)) return session;
+  if (!session) return null;
+  try {
+    return (await isAccountSessionActive(session.id, session.role))
+      ? session
+      : null;
+  } catch (error) {
+    // The database is unreachable or too slow to verify the account. Failing
+    // closed (treated as signed out) keeps authentication honest and turns a
+    // 500 across every page into a clean redirect to the sign-in screen.
+    console.error("session check failed", error);
+    return null;
   }
-  return null;
 });
