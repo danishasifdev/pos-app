@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useId, useMemo, useRef, useState } from "react";
-import { Search, CheckCircle2, Printer } from "lucide-react";
+import { Search, CheckCircle2, LoaderCircle, Printer } from "lucide-react";
 import { Category, Product, Receipt, StoreSettings } from "@/lib/types";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductGrid } from "./ProductGrid";
@@ -15,6 +15,12 @@ import { useToast } from "./ToastProvider";
 import { useModal } from "./useModal";
 
 export type CartLine = { product: Product; quantity: number };
+
+type ReceiptSavePayload = {
+  cart: { productId: string; quantity: number }[];
+  paymentMethod: PaymentMethod;
+  amountTendered: number;
+};
 
 export function PosTerminal({
   initialProducts,
@@ -37,6 +43,14 @@ export function PosTerminal({
   const [completedReceipt, setCompletedReceipt] = useState<Receipt | null>(
     null,
   );
+  const [receiptSaveState, setReceiptSaveState] = useState<
+    "saving" | "saved" | "error" | null
+  >(null);
+  const [receiptSaveError, setReceiptSaveError] = useState("");
+  const [pendingSave, setPendingSave] = useState<{
+    id: string;
+    payload: ReceiptSavePayload;
+  } | null>(null);
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       if (!p.active) return false;
@@ -118,20 +132,88 @@ export function PosTerminal({
   );
   const total = round2(Math.max(0, subtotal + taxTotal));
 
+  async function saveReceipt(id: string, payload: ReceiptSavePayload) {
+    const res = await fetch("/api/receipts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, id }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error ?? "Could not save the receipt");
+    }
+    return (await res.json()) as Receipt;
+  }
+
+  function startReceiptSave(id: string, payload: ReceiptSavePayload) {
+    setReceiptSaveState("saving");
+    setReceiptSaveError("");
+    void saveReceipt(id, payload)
+      .then((receipt) => {
+        setCompletedReceipt(receipt);
+        setPendingSave(null);
+        setReceiptSaveState("saved");
+        showToast(`Payment complete · Receipt #${receipt.number}`, "success");
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error ? error.message : "Could not save the receipt";
+        setReceiptSaveError(message);
+        setReceiptSaveState("error");
+        showToast(message, "error");
+      });
+  }
+
   async function confirmPayment(method: PaymentMethod, tendered: number) {
     setSubmitting(true);
     try {
+      const payload: ReceiptSavePayload = {
+        cart: lines.map((l) => ({
+          productId: l.product.id,
+          quantity: l.quantity,
+        })),
+        paymentMethod: method,
+        amountTendered: tendered,
+      };
+
+      if (signedIn) {
+        const id = crypto.randomUUID();
+        const previewSubtotal = round2(subtotal);
+        const previewTaxTotal = round2(taxTotal);
+        const previewReceipt: Receipt = {
+          id,
+          number: "Saving...",
+          createdAt: new Date().toISOString(),
+          items: lines.map((line) => ({
+            productId: line.product.id,
+            name: line.product.name,
+            price: line.product.price,
+            quantity: line.quantity,
+          })),
+          subtotal: previewSubtotal,
+          taxRate: settings.taxRate,
+          taxTotal: previewTaxTotal,
+          discount: 0,
+          total,
+          paymentMethod: method,
+          amountTendered: round2(tendered),
+          changeDue: round2(Math.max(0, round2(tendered) - total)),
+          cashier: "Front Register",
+        };
+
+        setCompletedReceipt(previewReceipt);
+        setPendingSave({ id, payload });
+        setReceiptSaveState("saving");
+        setShowPayment(false);
+        clearCart(false);
+        startReceiptSave(id, payload);
+        return;
+      }
+
       const res = await fetch("/api/receipts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cart: lines.map((l) => ({
-            productId: l.product.id,
-            quantity: l.quantity,
-          })),
-          paymentMethod: method,
-          amountTendered: tendered,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -139,6 +221,7 @@ export function PosTerminal({
       }
       const receipt: Receipt = await res.json();
       setCompletedReceipt(receipt);
+      setReceiptSaveState("saved");
       setShowPayment(false);
       clearCart(false);
       showToast(`Payment complete · Receipt #${receipt.number}`, "success");
@@ -216,7 +299,20 @@ export function PosTerminal({
           receipt={completedReceipt}
           settings={settings}
           signedIn={signedIn}
-          onClose={() => setCompletedReceipt(null)}
+          saveState={receiptSaveState}
+          saveError={receiptSaveError}
+          onRetry={
+            pendingSave
+              ? () => startReceiptSave(pendingSave.id, pendingSave.payload)
+              : undefined
+          }
+          onClose={() => {
+            if (receiptSaveState === "saving") return;
+            setCompletedReceipt(null);
+            setPendingSave(null);
+            setReceiptSaveState(null);
+            setReceiptSaveError("");
+          }}
         />
       )}
     </div>
@@ -227,11 +323,17 @@ function ReceiptSuccessModal({
   receipt,
   settings,
   signedIn,
+  saveState,
+  saveError,
+  onRetry,
   onClose,
 }: {
   receipt: Receipt;
   settings: StoreSettings;
   signedIn: boolean;
+  saveState: "saving" | "saved" | "error" | null;
+  saveError: string;
+  onRetry?: () => void;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
@@ -262,20 +364,48 @@ function ReceiptSuccessModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-          <CheckCircle2
-            aria-hidden="true"
-            size={20}
-            className="text-emerald-500"
-          />
-          <div>
+          {saveState === "saving" ? (
+            <LoaderCircle
+              aria-hidden="true"
+              className="animate-spin text-primary"
+              size={20}
+            />
+          ) : saveState === "error" ? (
+            <span aria-hidden="true" className="text-lg font-bold text-red-600">
+              !
+            </span>
+          ) : (
+            <CheckCircle2
+              aria-hidden="true"
+              size={20}
+              className="text-emerald-500"
+            />
+          )}
+          <div
+            aria-live={saveState === "error" ? "assertive" : "polite"}
+            role={saveState === "error" ? "alert" : "status"}
+          >
             <p className="text-sm font-semibold text-fg" id={titleId}>
-              Payment complete
+              {saveState === "saving"
+                ? "Saving receipt…"
+                : saveState === "error"
+                  ? "Receipt not saved"
+                  : "Payment complete"}
             </p>
             <p className="text-xs text-muted-fg">
-              Receipt #{receipt.number} saved
+              {saveState === "saving"
+                ? "Your receipt is being saved in the background."
+                : saveState === "error"
+                  ? "The receipt needs to be saved before it can be printed."
+                  : `Receipt #${receipt.number} saved`}
             </p>
           </div>
         </div>
+        {saveState === "error" && (
+          <p className="border-b border-border px-5 py-3 text-xs text-red-700">
+            {saveError}
+          </p>
+        )}
         <div className="flex-1 overflow-y-auto bg-surface-muted py-4">
           <ReceiptPrintable receipt={receipt} settings={settings} />
         </div>
@@ -294,18 +424,30 @@ function ReceiptSuccessModal({
           <button
             onClick={onClose}
             type="button"
+            disabled={saveState === "saving"}
             className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-fg hover:bg-surface-muted"
           >
-            Close
+            {saveState === "error" ? "Close without saving" : "Close"}
           </button>
-          <button
-            onClick={printReceipt}
-            type="button"
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          >
-            <Printer aria-hidden="true" size={16} />
-            Print
-          </button>
+          {saveState === "error" && onRetry ? (
+            <button
+              onClick={onRetry}
+              type="button"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            >
+              Retry save
+            </button>
+          ) : (
+            <button
+              onClick={printReceipt}
+              type="button"
+              disabled={saveState !== "saved"}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Printer aria-hidden="true" size={16} />
+              {saveState === "saving" ? "Saving…" : "Print"}
+            </button>
+          )}
         </div>
       </div>
     </div>

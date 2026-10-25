@@ -597,6 +597,17 @@ export async function addReceipt(
     `;
     if (!settings) throw new Error(`Settings are missing for account ${accountId}.`);
 
+    const [existingReceipt] = await transaction<ReceiptRow[]>`
+      SELECT
+        id, number, created_at AS "createdAt", items, subtotal,
+        tax_rate AS "taxRate", tax_total AS "taxTotal", discount, total,
+        payment_method AS "paymentMethod", amount_tendered AS "amountTendered",
+        change_due AS "changeDue", cashier, note, voided
+      FROM receipts
+      WHERE account_id = ${accountId} AND id = ${receipt.id}
+    `;
+    if (existingReceipt) return receiptFromRow(existingReceipt);
+
     const savedReceipt: Receipt = {
       ...receipt,
       number: String(settings.next_receipt_number).padStart(6, "0"),

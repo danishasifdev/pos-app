@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   addWorkspaceReceipt,
   getWorkspaceProducts,
+  getWorkspaceReceipt,
   getWorkspaceReceipts,
   getWorkspaceSettings,
 } from "@/lib/workspace";
@@ -32,6 +33,17 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  let receiptId: string = randomUUID();
+  if (body.id !== undefined) {
+    if (typeof body.id !== "string" || !isUuid(body.id)) {
+      return NextResponse.json({ error: "Invalid receipt ID" }, { status: 400 });
+    }
+    receiptId = body.id;
+    const existingReceipt = await getWorkspaceReceipt(user, receiptId);
+    if (existingReceipt) return NextResponse.json(existingReceipt);
+  }
+
   const cart = Array.isArray(body.cart) ? body.cart.filter(isCartLine) : [];
 
   if (!Array.isArray(cart) || cart.length === 0) {
@@ -98,7 +110,7 @@ export async function POST(req: NextRequest) {
   const changeDue = Math.max(0, round2(amountTendered) - roundedTotal);
 
   const receipt: Omit<Receipt, "number"> = {
-    id: randomUUID(),
+    id: receiptId,
     createdAt: new Date().toISOString(),
     items,
     subtotal: round2(subtotal),
@@ -133,4 +145,8 @@ function isCartLine(
 
 function isPaymentMethod(value: unknown): value is Receipt["paymentMethod"] {
   return value === "cash" || value === "card" || value === "mobile";
+}
+
+function isUuid(value: string): boolean {
+  return /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(value);
 }
