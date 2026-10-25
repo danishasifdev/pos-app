@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useId, useMemo, useRef, useState } from "react";
-import { Search, CheckCircle2, Printer } from "lucide-react";
+import { Search, CheckCircle2, FileText, Printer } from "lucide-react";
 import { Category, Product, Receipt, StoreSettings } from "@/lib/types";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductGrid } from "./ProductGrid";
@@ -151,11 +151,11 @@ export function PosTerminal({
     setReceiptSaveError("");
     void saveReceipt(id, payload)
       .then((receipt) => {
-        setCompletedReceipt(receipt);
+        setCompletedReceipt((current) => (current ? receipt : null));
         setPendingSave(null);
         setReceiptSaveState("saved");
         clearCart(false);
-        showToast(`Payment complete · Receipt #${receipt.number}`, "success");
+        showToast(`Receipt #${receipt.number} saved`, "success");
       })
       .catch((error: unknown) => {
         const message =
@@ -180,6 +180,27 @@ export function PosTerminal({
 
       if (signedIn) {
         const id = crypto.randomUUID();
+        const previewReceipt: Receipt = {
+          id,
+          number: "Pending",
+          createdAt: new Date().toISOString(),
+          items: lines.map((line) => ({
+            productId: line.product.id,
+            name: line.product.name,
+            price: line.product.price,
+            quantity: line.quantity,
+          })),
+          subtotal: round2(subtotal),
+          taxRate: settings.taxRate,
+          taxTotal: round2(taxTotal),
+          discount: 0,
+          total,
+          paymentMethod: method,
+          amountTendered: round2(tendered),
+          changeDue: round2(Math.max(0, round2(tendered) - total)),
+          cashier: "Front Register",
+        };
+        setCompletedReceipt(previewReceipt);
         setPendingSave({ id, payload });
         setReceiptSaveState("saving");
         setReceiptSaveError("");
@@ -202,7 +223,7 @@ export function PosTerminal({
       setReceiptSaveState("saved");
       setShowPayment(false);
       clearCart(false);
-      showToast(`Payment complete · Receipt #${receipt.number}`, "success");
+      showToast(`Receipt #${receipt.number} saved`, "success");
     } catch (e) {
       showToast(
         e instanceof Error ? e.message : "Something went wrong",
@@ -302,11 +323,9 @@ export function PosTerminal({
           receipt={completedReceipt}
           settings={settings}
           signedIn={signedIn}
+          saveState={receiptSaveState}
           onClose={() => {
             setCompletedReceipt(null);
-            setPendingSave(null);
-            setReceiptSaveState(null);
-            setReceiptSaveError("");
           }}
         />
       )}
@@ -318,11 +337,13 @@ function ReceiptSuccessModal({
   receipt,
   settings,
   signedIn,
+  saveState,
   onClose,
 }: {
   receipt: Receipt;
   settings: StoreSettings;
   signedIn: boolean;
+  saveState: "saving" | "saved" | "error" | null;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
@@ -353,11 +374,19 @@ function ReceiptSuccessModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-          <CheckCircle2
-            aria-hidden="true"
-            size={20}
-            className="text-emerald-500"
-          />
+          {saveState === "saved" || !signedIn ? (
+            <CheckCircle2
+              aria-hidden="true"
+              size={20}
+              className="text-emerald-500"
+            />
+          ) : (
+            <FileText
+              aria-hidden="true"
+              size={20}
+              className="text-primary"
+            />
+          )}
           <div
             aria-live="polite"
             role="status"
@@ -365,11 +394,15 @@ function ReceiptSuccessModal({
             <p className="text-sm font-semibold text-fg" id={titleId}>
               Payment complete
             </p>
-            <p className="text-xs text-muted-fg">
-              {signedIn
-                ? `Receipt #${receipt.number} saved`
-                : `Receipt #${receipt.number}`}
-            </p>
+            {(saveState === "saved" || !signedIn || saveState === "error") && (
+              <p className="text-xs text-muted-fg">
+                {saveState === "saved"
+                  ? `Receipt #${receipt.number} saved`
+                  : !signedIn
+                    ? `Receipt #${receipt.number}`
+                    : "Retry saving from the order panel."}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex-1 overflow-y-auto bg-surface-muted py-4">
