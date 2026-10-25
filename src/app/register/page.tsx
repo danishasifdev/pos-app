@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AccountForm } from "@/components/AccountForm";
 import { AuthShell } from "@/components/AuthShell";
-import { getCurrentUser } from "@/lib/auth";
+import { DemoWorkspaceButton } from "@/components/DemoWorkspaceButton";
+import { GuestWorkspaceLink } from "@/components/GuestWorkspaceLink";
+import { getCurrentUser, isDemoMode } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -18,6 +20,7 @@ export default async function RegisterPage() {
     <AuthShell
       title="Create your account"
       description="Your products, settings, and receipts are kept in your own workspace."
+      variant="register"
       footer={
         <p>
           Already registered?{" "}
@@ -31,6 +34,7 @@ export default async function RegisterPage() {
       }
     >
       <AccountForm mode="register" />
+      {isDemoMode() ? <DemoWorkspaceButton /> : <GuestWorkspaceLink />}
     </AuthShell>
   );
 }

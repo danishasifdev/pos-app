@@ -1,7 +1,15 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { LoaderCircle } from "lucide-react";
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  LockKeyhole,
+  LoaderCircle,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ToastProvider";
 
@@ -16,6 +24,7 @@ export function AccountForm({
   const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -49,47 +58,101 @@ export function AccountForm({
   }
 
   return (
-    <form className="space-y-4" onSubmit={submit}>
+    <form className="space-y-5" onSubmit={submit}>
       <label className="block text-sm font-medium text-fg">
-        Email
-        <input
-          autoComplete="email"
-          className="mt-1.5 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-fg shadow-sm outline-none transition-colors placeholder:text-muted-fg focus:border-primary"
-          onChange={(event) => setEmail(event.target.value)}
-          required
-          type="email"
-          value={email}
-        />
+        Email address
+        <span className="relative mt-2 block">
+          <Mail
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-fg"
+            size={17}
+          />
+          <input
+            autoComplete="email"
+            autoCapitalize="none"
+            className="w-full rounded-xl border border-border bg-surface px-3.5 py-3 pl-11 text-sm text-fg shadow-sm outline-none transition placeholder:text-muted-fg/80 hover:border-muted-fg/50 focus:border-primary focus:ring-4 focus:ring-primary/10"
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@yourbusiness.com"
+            required
+            spellCheck={false}
+            type="email"
+            value={email}
+          />
+        </span>
       </label>
       <label className="block text-sm font-medium text-fg">
         Password
-        <input
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-          className="mt-1.5 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-fg shadow-sm outline-none transition-colors placeholder:text-muted-fg focus:border-primary"
-          minLength={mode === "register" ? 12 : undefined}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-          type="password"
-          value={password}
-        />
+        <span className="relative mt-2 block">
+          <LockKeyhole
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-fg"
+            size={17}
+          />
+          <input
+            autoComplete={
+              mode === "login" ? "current-password" : "new-password"
+            }
+            className="w-full rounded-xl border border-border bg-surface px-3.5 py-3 pl-11 pr-12 text-sm text-fg shadow-sm outline-none transition placeholder:text-muted-fg/80 hover:border-muted-fg/50 focus:border-primary focus:ring-4 focus:ring-primary/10"
+            minLength={mode === "register" ? 12 : undefined}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder={
+              mode === "register"
+                ? "At least 12 characters"
+                : "Enter your password"
+            }
+            required
+            type={showPassword ? "text" : "password"}
+            value={password}
+          />
+          <button
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-fg hover:text-fg"
+            onClick={() => setShowPassword((visible) => !visible)}
+            type="button"
+          >
+            {showPassword ? (
+              <EyeOff aria-hidden="true" size={17} />
+            ) : (
+              <Eye aria-hidden="true" size={17} />
+            )}
+          </button>
+        </span>
       </label>
-      {mode === "register" && (
-        <p className="-mt-2 text-xs text-muted-fg">
-          Use at least 12 characters. Your account includes a private sample POS.
-        </p>
-      )}
+
       <button
-        className="w-full rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:opacity-60"
+        className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/15 transition hover:-translate-y-0.5 hover:opacity-95 hover:shadow-xl hover:shadow-primary/20 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
         disabled={submitting}
         type="submit"
       >
         {submitting && (
-          <LoaderCircle aria-hidden="true" className="mr-2 inline animate-spin" size={16} />
+          <LoaderCircle aria-hidden="true" className="animate-spin" size={17} />
         )}
-        {submitting ? "Please wait…" : mode === "login"
+        {submitting
+          ? "Please wait…"
+          : mode === "login"
             ? "Sign in"
             : "Create account"}
+        {!submitting && (
+          <ArrowRight
+            aria-hidden="true"
+            className="transition-transform group-hover:translate-x-0.5"
+            size={17}
+          />
+        )}
       </button>
+
+      {mode === "register" && (
+        <p className="-mt-1 flex items-start gap-2 text-xs leading-5 text-muted-fg">
+          <ShieldCheck
+            aria-hidden="true"
+            className="mt-0.5 shrink-0 text-primary"
+            size={15}
+          />
+          Your workspace is private. Use at least 12 characters for your
+          password.
+        </p>
+      )}
     </form>
   );
 }

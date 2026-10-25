@@ -13,7 +13,7 @@ export function CategoryTabs({
   onChange: (id: string | "all") => void;
 }) {
   return (
-    <div className="flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 pt-2 md:pt-4 md:px-6">
+    <div className="flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 pt-3 md:px-6 md:pt-4">
       <TabButton
         label="All items"
         selected={active === "all"}
@@ -51,10 +51,10 @@ function TabButton({
       aria-pressed={selected}
       onClick={onClick}
       type="button"
-      className={`flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+      className={`flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition duration-150 sm:text-sm ${
         selected
-          ? "border-transparent shadow-sm"
-          : "border-border bg-surface text-fg hover:bg-surface-muted"
+          ? "border-transparent shadow-sm ring-1 ring-black/5"
+          : "border-border/80 bg-surface/80 text-muted-fg hover:border-primary/30 hover:bg-surface hover:text-fg"
       }`}
       style={selected ? chipStyle(color) : undefined}
     >

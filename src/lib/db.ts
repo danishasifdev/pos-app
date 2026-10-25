@@ -256,7 +256,8 @@ export async function getLoginRecord(email: string): Promise<LoginRecord | null>
   const [row] = await sql<UserRow[]>`
     SELECT
       id, email, password_hash AS "passwordHash", role, status,
-      created_at AS "createdAt", last_login_at AS "lastLoginAt"
+      COALESCE(created_at, NOW()) AS "createdAt",
+      last_login_at AS "lastLoginAt"
     FROM users
     WHERE LOWER(email) = ${email}
       AND role IN ('admin', 'user')
@@ -300,7 +301,8 @@ export async function listAccounts(): Promise<AccountUser[]> {
   const rows = await sql<UserRow[]>`
     SELECT
       id, email, password_hash AS "passwordHash", role, status,
-      created_at AS "createdAt", last_login_at AS "lastLoginAt"
+      COALESCE(created_at, NOW()) AS "createdAt",
+      last_login_at AS "lastLoginAt"
     FROM users
     ORDER BY
       CASE role WHEN 'admin' THEN 0 WHEN 'demo' THEN 1 ELSE 2 END,
@@ -404,16 +406,30 @@ type ReceiptRow = Omit<Receipt, "createdAt" | "note" | "items"> & {
 };
 
 type AccountActivityRow = Omit<AccountActivity, "createdAt" | "details"> & {
-  createdAt: Date;
+  createdAt: Date | string | null | undefined;
   details: Record<string, unknown> | string;
 };
 
-function accountActivityFromRow(row: AccountActivityRow): AccountActivity {
+function accountActivityFromRow(
+  row: AccountActivityRow,
+): AccountActivity | null {
+  const createdAt =
+    row.createdAt instanceof Date
+      ? row.createdAt
+      : typeof row.createdAt === "string"
+        ? new Date(row.createdAt)
+        : null;
+  if (!createdAt || !Number.isFinite(createdAt.getTime())) {
+    console.error("Skipping account activity with invalid created_at", {
+      id: row.id,
+    });
+    return null;
+  }
   const details =
     typeof row.details === "string"
       ? (JSON.parse(row.details) as Record<string, unknown>)
       : row.details;
-  return { ...row, details, createdAt: row.createdAt.toISOString() };
+  return { ...row, details, createdAt: createdAt.toISOString() };
 }
 
 function receiptFromRow(receipt: ReceiptRow): Receipt {
@@ -597,6 +613,17 @@ export async function addReceipt(
     `;
     if (!settings) throw new Error(`Settings are missing for account ${accountId}.`);
 
+    const [existingReceipt] = await transaction<ReceiptRow[]>`
+      SELECT
+        id, number, created_at AS "createdAt", items, subtotal,
+        tax_rate AS "taxRate", tax_total AS "taxTotal", discount, total,
+        payment_method AS "paymentMethod", amount_tendered AS "amountTendered",
+        change_due AS "changeDue", cashier, note, voided
+      FROM receipts
+      WHERE account_id = ${accountId} AND id = ${receipt.id}
+    `;
+    if (existingReceipt) return receiptFromRow(existingReceipt);
+
     const savedReceipt: Receipt = {
       ...receipt,
       number: String(settings.next_receipt_number).padStart(6, "0"),
@@ -755,29 +782,17 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   const sql = getClient();
   const [
     accounts,
-    salesByDay,
     activityRows,
-    salesByCurrency,
     accountDailyRows,
     accountMetrics,
   ] =
     await Promise.all([
       listAccounts(),
-      getAdminDailySales(sql),
       getRecentAccountActivity(sql),
-      sql<{ currencySymbol: string; total: number }[]>`
-        SELECT
-          settings.currency_symbol AS "currencySymbol",
-          COALESCE(SUM(receipts.total) FILTER (WHERE NOT receipts.voided), 0)::float8 AS total
-        FROM receipts
-        JOIN settings ON settings.account_id = receipts.account_id AND settings.id = 1
-        GROUP BY settings.currency_symbol
-        ORDER BY settings.currency_symbol
-      `,
       getAdminAccountDailySales(sql),
       sql<{
         id: string;
-        currencySymbol: string;
+        currencySymbol: string | null;
         salesTotal: number;
         transactionCount: number;
         voidedCount: number;
@@ -799,6 +814,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     ]);
   const metricById = new Map(accountMetrics.map((metric) => [metric.id, metric]));
   const dailySalesByAccount = new Map<string, DailySales[]>();
+  const dailySalesByDay = new Map<string, DailySales>();
   for (const row of accountDailyRows) {
     const dailySales = dailySalesByAccount.get(row.accountId) ?? [];
     dailySales.push({
@@ -807,7 +823,33 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       transactionCount: row.transactionCount,
     });
     dailySalesByAccount.set(row.accountId, dailySales);
+
+    const dailyTotal = dailySalesByDay.get(row.day) ?? {
+      day: row.day,
+      total: 0,
+      transactionCount: 0,
+    };
+    dailyTotal.total += row.total;
+    dailyTotal.transactionCount += row.transactionCount;
+    dailySalesByDay.set(row.day, dailyTotal);
   }
+  const salesByCurrencyTotals = new Map<string, number>();
+  for (const metric of accountMetrics) {
+    if (
+      !metric.currencySymbol ||
+      metric.transactionCount + metric.voidedCount === 0
+    ) {
+      continue;
+    }
+    salesByCurrencyTotals.set(
+      metric.currencySymbol,
+      (salesByCurrencyTotals.get(metric.currencySymbol) ?? 0) +
+        metric.salesTotal,
+    );
+  }
+  const salesByCurrency = [...salesByCurrencyTotals]
+    .map(([currencySymbol, total]) => ({ currencySymbol, total }))
+    .sort((a, b) => a.currencySymbol.localeCompare(b.currencySymbol));
   return {
     accounts: accounts
       .filter((account) => account.role !== "admin")
@@ -833,7 +875,9 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       (account) =>
         account.role !== "admin" && account.status === "active",
     ).length,
-    dailySales: salesByDay,
+    dailySales: [...dailySalesByDay.values()].sort((a, b) =>
+      a.day.localeCompare(b.day),
+    ),
     activity: activityRows,
   };
 }
@@ -873,28 +917,6 @@ export async function getAdminTransactions(
     accountEmail: row.accountEmail,
     currencySymbol: row.currencySymbol,
   }));
-}
-
-function getAdminDailySales(sql: ReturnType<typeof getClient>) {
-  return sql<DailySales[]>`
-    WITH days AS (
-      SELECT generate_series(
-        CURRENT_DATE - INTERVAL '13 days',
-        CURRENT_DATE,
-        INTERVAL '1 day'
-      )::date AS day
-    )
-    SELECT
-      to_char(days.day, 'YYYY-MM-DD') AS day,
-      COALESCE(SUM(receipts.total) FILTER (WHERE NOT receipts.voided), 0)::float8 AS total,
-      COUNT(receipts.id) FILTER (WHERE NOT receipts.voided)::int AS "transactionCount"
-    FROM days
-    LEFT JOIN receipts
-      ON receipts.created_at >= days.day
-      AND receipts.created_at < days.day + INTERVAL '1 day'
-    GROUP BY days.day
-    ORDER BY days.day
-  `;
 }
 
 function getAdminAccountDailySales(sql: ReturnType<typeof getClient>) {
@@ -937,13 +959,16 @@ async function getRecentAccountActivity(
       actor_email AS "actorEmail",
       event_type AS "eventType",
       details,
-      created_at AS "createdAt"
+      COALESCE(created_at, NOW()) AS "createdAt"
     FROM account_activity
     ${accountId ? sql`WHERE account_id = ${accountId}` : sql``}
     ORDER BY created_at DESC
     LIMIT 100
   `;
-  return rows.map(accountActivityFromRow);
+  return rows.flatMap((row) => {
+    const activity = accountActivityFromRow(row);
+    return activity ? [activity] : [];
+  });
 }
 
 export async function getAccountActivity(
