@@ -34,8 +34,7 @@ export default async function RegisterPage() {
       }
     >
       <AccountForm mode="register" />
-      <GuestWorkspaceLink />
-      {isDemoMode() && <DemoWorkspaceButton />}
+      {isDemoMode() ? <DemoWorkspaceButton /> : <GuestWorkspaceLink />}
     </AuthShell>
   );
 }

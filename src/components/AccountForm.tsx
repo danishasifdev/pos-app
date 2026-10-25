@@ -89,12 +89,16 @@ export function AccountForm({
             size={17}
           />
           <input
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            autoComplete={
+              mode === "login" ? "current-password" : "new-password"
+            }
             className="w-full rounded-xl border border-border bg-surface px-3.5 py-3 pl-11 pr-12 text-sm text-fg shadow-sm outline-none transition placeholder:text-muted-fg/80 hover:border-muted-fg/50 focus:border-primary focus:ring-4 focus:ring-primary/10"
             minLength={mode === "register" ? 12 : undefined}
             onChange={(event) => setPassword(event.target.value)}
             placeholder={
-              mode === "register" ? "At least 12 characters" : "Enter your password"
+              mode === "register"
+                ? "At least 12 characters"
+                : "Enter your password"
             }
             required
             type={showPassword ? "text" : "password"}
@@ -115,16 +119,7 @@ export function AccountForm({
           </button>
         </span>
       </label>
-      {mode === "register" && (
-        <p className="-mt-1 flex items-start gap-2 text-xs leading-5 text-muted-fg">
-          <ShieldCheck
-            aria-hidden="true"
-            className="mt-0.5 shrink-0 text-primary"
-            size={15}
-          />
-          Your workspace is private. Use at least 12 characters for your password.
-        </p>
-      )}
+
       <button
         className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/15 transition hover:-translate-y-0.5 hover:opacity-95 hover:shadow-xl hover:shadow-primary/20 disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60"
         disabled={submitting}
@@ -133,7 +128,9 @@ export function AccountForm({
         {submitting && (
           <LoaderCircle aria-hidden="true" className="animate-spin" size={17} />
         )}
-        {submitting ? "Please wait…" : mode === "login"
+        {submitting
+          ? "Please wait…"
+          : mode === "login"
             ? "Sign in"
             : "Create account"}
         {!submitting && (
@@ -144,6 +141,18 @@ export function AccountForm({
           />
         )}
       </button>
+
+      {mode === "register" && (
+        <p className="-mt-1 flex items-start gap-2 text-xs leading-5 text-muted-fg">
+          <ShieldCheck
+            aria-hidden="true"
+            className="mt-0.5 shrink-0 text-primary"
+            size={15}
+          />
+          Your workspace is private. Use at least 12 characters for your
+          password.
+        </p>
+      )}
     </form>
   );
 }

@@ -55,10 +55,8 @@ export function LoginPageClient({
         expectedRole={adminLogin ? "admin" : undefined}
         mode="login"
       />
-      {!adminLogin && <GuestWorkspaceLink />}
-      {demoMode && !adminLogin && (
-        <DemoWorkspaceButton />
-      )}
+      {!adminLogin &&
+        (demoMode ? <DemoWorkspaceButton /> : <GuestWorkspaceLink />)}
     </AuthShell>
   );
 }
