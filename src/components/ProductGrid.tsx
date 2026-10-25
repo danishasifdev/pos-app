@@ -7,10 +7,12 @@ export function ProductGrid({
   products,
   currencySymbol,
   onAdd,
+  disabled = false,
 }: {
   products: Product[];
   currencySymbol: string;
   onAdd: (product: Product) => void;
+  disabled?: boolean;
 }) {
   if (products.length === 0) {
     return (
@@ -33,8 +35,9 @@ export function ProductGrid({
           key={product.id}
           type="button"
           onClick={() => onAdd(product)}
+          disabled={disabled}
           aria-label={`Add ${product.name} for ${currencySymbol}${product.price.toFixed(2)}`}
-          className="group relative flex min-h-36 w-full flex-col overflow-hidden rounded-2xl border border-border/80 bg-surface/95 p-3 text-left shadow-sm outline-none transition duration-150 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.98] active:shadow-sm motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:min-h-40 sm:p-3.5"
+          className="group relative flex min-h-36 w-full flex-col overflow-hidden rounded-2xl border border-border/80 bg-surface/95 p-3 text-left shadow-sm outline-none transition duration-150 ease-out hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 active:translate-y-0 active:scale-[0.98] active:shadow-sm disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:min-h-40 sm:p-3.5"
         >
           <div className="flex w-full items-start justify-between">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-muted text-[26px] leading-none ring-1 ring-black/[0.025] sm:h-14 sm:w-14 sm:text-[30px]">

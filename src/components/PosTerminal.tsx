@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useId, useMemo, useRef, useState } from "react";
-import { Search, CheckCircle2, LoaderCircle, Printer } from "lucide-react";
+import { Search, CheckCircle2, Printer } from "lucide-react";
 import { Category, Product, Receipt, StoreSettings } from "@/lib/types";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductGrid } from "./ProductGrid";
@@ -38,6 +38,7 @@ export function PosTerminal({
   const [activeCategory, setActiveCategory] = useState<string | "all">("all");
   const [search, setSearch] = useState("");
   const [lines, setLines] = useState<CartLine[]>([]);
+  const [mobileOrderExpanded, setMobileOrderExpanded] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [completedReceipt, setCompletedReceipt] = useState<Receipt | null>(
@@ -153,6 +154,7 @@ export function PosTerminal({
         setCompletedReceipt(receipt);
         setPendingSave(null);
         setReceiptSaveState("saved");
+        clearCart(false);
         showToast(`Payment complete · Receipt #${receipt.number}`, "success");
       })
       .catch((error: unknown) => {
@@ -178,34 +180,10 @@ export function PosTerminal({
 
       if (signedIn) {
         const id = crypto.randomUUID();
-        const previewSubtotal = round2(subtotal);
-        const previewTaxTotal = round2(taxTotal);
-        const previewReceipt: Receipt = {
-          id,
-          number: "Saving...",
-          createdAt: new Date().toISOString(),
-          items: lines.map((line) => ({
-            productId: line.product.id,
-            name: line.product.name,
-            price: line.product.price,
-            quantity: line.quantity,
-          })),
-          subtotal: previewSubtotal,
-          taxRate: settings.taxRate,
-          taxTotal: previewTaxTotal,
-          discount: 0,
-          total,
-          paymentMethod: method,
-          amountTendered: round2(tendered),
-          changeDue: round2(Math.max(0, round2(tendered) - total)),
-          cashier: "Front Register",
-        };
-
-        setCompletedReceipt(previewReceipt);
         setPendingSave({ id, payload });
         setReceiptSaveState("saving");
+        setReceiptSaveError("");
         setShowPayment(false);
-        clearCart(false);
         startReceiptSave(id, payload);
         return;
       }
@@ -242,9 +220,6 @@ export function PosTerminal({
           <h1 className="sr-only">Point of sale terminal</h1>
           <div className="flex items-center justify-between gap-3 px-4 pt-4 md:px-6 md:pt-6">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-                Point of sale
-              </p>
               <h2 className="mt-1 text-lg font-semibold tracking-tight text-fg md:text-xl">
                 Add to your order
               </h2>
@@ -281,10 +256,11 @@ export function PosTerminal({
               products={filteredProducts}
               currencySymbol={settings.currencySymbol}
               onAdd={addToCart}
+              disabled={pendingSave !== null}
             />
           </div>
         </div>
-        <ResizablePanel>
+        <ResizablePanel mobileExpanded={mobileOrderExpanded}>
           <Cart
             lines={lines}
             currencySymbol={settings.currencySymbol}
@@ -295,6 +271,18 @@ export function PosTerminal({
             onRemove={remove}
             onClear={clearCart}
             onCheckout={() => setShowPayment(true)}
+            mobileExpanded={mobileOrderExpanded}
+            onToggleMobile={() =>
+              setMobileOrderExpanded((expanded) => !expanded)
+            }
+            receiptSaveState={receiptSaveState}
+            receiptSaveError={receiptSaveError}
+            onRetrySave={
+              pendingSave
+                ? () => startReceiptSave(pendingSave.id, pendingSave.payload)
+                : undefined
+            }
+            orderLocked={pendingSave !== null}
           />
         </ResizablePanel>
       </div>
@@ -314,15 +302,7 @@ export function PosTerminal({
           receipt={completedReceipt}
           settings={settings}
           signedIn={signedIn}
-          saveState={receiptSaveState}
-          saveError={receiptSaveError}
-          onRetry={
-            pendingSave
-              ? () => startReceiptSave(pendingSave.id, pendingSave.payload)
-              : undefined
-          }
           onClose={() => {
-            if (receiptSaveState === "saving") return;
             setCompletedReceipt(null);
             setPendingSave(null);
             setReceiptSaveState(null);
@@ -338,17 +318,11 @@ function ReceiptSuccessModal({
   receipt,
   settings,
   signedIn,
-  saveState,
-  saveError,
-  onRetry,
   onClose,
 }: {
   receipt: Receipt;
   settings: StoreSettings;
   signedIn: boolean;
-  saveState: "saving" | "saved" | "error" | null;
-  saveError: string;
-  onRetry?: () => void;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
@@ -379,48 +353,25 @@ function ReceiptSuccessModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-          {saveState === "saving" ? (
-            <LoaderCircle
-              aria-hidden="true"
-              className="animate-spin text-primary"
-              size={20}
-            />
-          ) : saveState === "error" ? (
-            <span aria-hidden="true" className="text-lg font-bold text-red-600">
-              !
-            </span>
-          ) : (
-            <CheckCircle2
-              aria-hidden="true"
-              size={20}
-              className="text-emerald-500"
-            />
-          )}
+          <CheckCircle2
+            aria-hidden="true"
+            size={20}
+            className="text-emerald-500"
+          />
           <div
-            aria-live={saveState === "error" ? "assertive" : "polite"}
-            role={saveState === "error" ? "alert" : "status"}
+            aria-live="polite"
+            role="status"
           >
             <p className="text-sm font-semibold text-fg" id={titleId}>
-              {saveState === "saving"
-                ? "Saving receipt…"
-                : saveState === "error"
-                  ? "Receipt not saved"
-                  : "Payment complete"}
+              Payment complete
             </p>
             <p className="text-xs text-muted-fg">
-              {saveState === "saving"
-                ? "Your receipt is being saved in the background."
-                : saveState === "error"
-                  ? "The receipt needs to be saved before it can be printed."
-                  : `Receipt #${receipt.number} saved`}
+              {signedIn
+                ? `Receipt #${receipt.number} saved`
+                : `Receipt #${receipt.number}`}
             </p>
           </div>
         </div>
-        {saveState === "error" && (
-          <p className="border-b border-border px-5 py-3 text-xs text-red-700">
-            {saveError}
-          </p>
-        )}
         <div className="flex-1 overflow-y-auto bg-surface-muted py-4">
           <ReceiptPrintable receipt={receipt} settings={settings} />
         </div>
@@ -439,30 +390,18 @@ function ReceiptSuccessModal({
           <button
             onClick={onClose}
             type="button"
-            disabled={saveState === "saving"}
             className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-fg hover:bg-surface-muted"
           >
-            {saveState === "error" ? "Close without saving" : "Close"}
+            Close
           </button>
-          {saveState === "error" && onRetry ? (
-            <button
-              onClick={onRetry}
-              type="button"
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-            >
-              Retry save
-            </button>
-          ) : (
-            <button
-              onClick={printReceipt}
-              type="button"
-              disabled={saveState !== "saved"}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Printer aria-hidden="true" size={16} />
-              {saveState === "saving" ? "Saving…" : "Print"}
-            </button>
-          )}
+          <button
+            onClick={printReceipt}
+            type="button"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <Printer aria-hidden="true" size={16} />
+            Print
+          </button>
         </div>
       </div>
     </div>

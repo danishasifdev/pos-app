@@ -58,7 +58,13 @@ function writeStored(next: number) {
   listeners.forEach((listener) => listener());
 }
 
-export function ResizablePanel({ children }: { children: React.ReactNode }) {
+export function ResizablePanel({
+  children,
+  mobileExpanded = true,
+}: {
+  children: React.ReactNode;
+  mobileExpanded?: boolean;
+}) {
   const preferred = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -179,7 +185,9 @@ export function ResizablePanel({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="cart-panel h-[45vh] w-full shrink-0 md:h-auto"
+      className={`cart-panel w-full shrink-0 md:h-auto ${
+        mobileExpanded ? "h-[45vh]" : "h-auto"
+      }`}
       ref={panelRef}
       style={{ "--cart-width": `${width}px` } as React.CSSProperties}
     >
