@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AccountForm } from "@/components/AccountForm";
 import { AuthShell } from "@/components/AuthShell";
 import { DemoWorkspaceButton } from "@/components/DemoWorkspaceButton";
+import { GuestWorkspaceLink } from "@/components/GuestWorkspaceLink";
 import { getCurrentUser, isDemoMode } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -33,6 +34,7 @@ export default async function RegisterPage() {
       }
     >
       <AccountForm mode="register" />
+      <GuestWorkspaceLink />
       {isDemoMode() && <DemoWorkspaceButton />}
     </AuthShell>
   );

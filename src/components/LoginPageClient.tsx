@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AccountForm } from "@/components/AccountForm";
 import { AuthShell } from "@/components/AuthShell";
 import { DemoWorkspaceButton } from "@/components/DemoWorkspaceButton";
+import { GuestWorkspaceLink } from "@/components/GuestWorkspaceLink";
 
 export function LoginPageClient({
   demoMode,
@@ -54,6 +55,7 @@ export function LoginPageClient({
         expectedRole={adminLogin ? "admin" : undefined}
         mode="login"
       />
+      {!adminLogin && <GuestWorkspaceLink />}
       {demoMode && !adminLogin && (
         <DemoWorkspaceButton />
       )}

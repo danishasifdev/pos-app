@@ -113,17 +113,21 @@ export function Sidebar({ user }: { user: SessionUser }) {
         </button>
         <div
           className={`mb-2 flex items-center gap-2 rounded-xl px-1.5 py-1.5 md:gap-3 md:px-2.5 md:py-2 ${align}`}
-          title={`${user.email} (${user.role})`}
+          title={
+            user.id === "guest"
+              ? "Guest workspace"
+              : `${user.email} (${user.role})`
+          }
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-primary md:h-9 md:w-9">
             <UserRound aria-hidden="true" size={17} />
           </span>
           <div className="sidebar-label-block min-w-0">
             <p className="truncate text-xs font-semibold text-fg">
-              {user.email}
+              {user.id === "guest" ? "Guest" : user.email}
             </p>
             <p className="text-xs capitalize text-muted-fg">
-              {user.role} account
+              {user.id === "guest" ? "Temporary workspace" : `${user.role} account`}
             </p>
           </div>
         </div>
@@ -132,7 +136,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
         ) : (
           <Link
             href="/login"
-            aria-label="Sign out"
+            aria-label="Log in"
             className={`flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-surface-muted px-1.5 py-1.5 text-sm font-semibold text-fg transition hover:border-primary/30 hover:bg-accent-soft hover:text-primary md:gap-2 md:px-2.5 md:py-2.5 ${align}`}
           >
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface text-primary shadow-sm md:h-8 md:w-8">

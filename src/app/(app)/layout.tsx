@@ -69,7 +69,7 @@ export default async function AppLayout({
             {anonymous && (
               <>
                 <Link
-                  className="hidden rounded-lg px-3 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-muted sm:hidden"
+                  className="hidden rounded-lg px-3 py-2 text-sm font-medium text-fg transition-colors hover:bg-surface-muted sm:inline-flex"
                   href="/login"
                 >
                   Sign in
