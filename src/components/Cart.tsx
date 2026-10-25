@@ -1,7 +1,13 @@
 "use client";
 
 import { CartLine } from "./PosTerminal";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import {
+  ArrowRight,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Trash2,
+} from "lucide-react";
 import { round2 } from "@/lib/format";
 
 export function Cart({
@@ -42,13 +48,22 @@ export function Cart({
   const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
 
   return (
-    <div className="flex h-full w-full min-w-0 flex-col md:border-l border-border bg-surface">
-      <div className="flex items-center justify-between border-b border-border px-4 md:py-3.5 py-2 border-t md:border-t-0">
-        <div className="flex items-center gap-2">
-          <ShoppingBag aria-hidden="true" size={16} className="text-muted-fg" />
-          <h2 className="text-sm font-semibold text-fg">Current order</h2>
+    <div className="flex h-full w-full min-w-0 flex-col border-border bg-surface/95 md:border-l md:bg-surface">
+      <div className="flex items-center justify-between border-b border-border/80 border-t px-4 py-3 md:border-t-0 md:px-5 md:py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-primary">
+            <ShoppingBag aria-hidden="true" size={17} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-fg">Current order</h2>
+            <p className="mt-0.5 text-[11px] text-muted-fg">
+              {itemCount > 0
+                ? `${itemCount} ${itemCount === 1 ? "item" : "items"} added`
+                : "Your order starts here"}
+            </p>
+          </div>
           {itemCount > 0 && (
-            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium tabular-nums text-fg">
+            <span className="rounded-full bg-surface-muted px-2 py-1 text-xs font-semibold tabular-nums text-fg">
               {itemCount}
             </span>
           )}
@@ -57,26 +72,26 @@ export function Cart({
           <button
             onClick={onClear}
             type="button"
-            className="rounded-md px-1.5 py-1 text-xs font-medium text-muted-fg hover:bg-surface-muted hover:text-fg"
+            className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-muted-fg hover:bg-surface-muted hover:text-fg"
           >
             Clear
           </button>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col overflow-y-auto px-3 py-2">
+      <div className="flex flex-1 flex-col overflow-y-auto px-3 py-3 md:px-4">
         {lines.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-4 text-center">
             <span
               aria-hidden="true"
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-muted-fg"
+              className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-soft to-surface-muted text-primary shadow-inner"
             >
-              <ShoppingBag size={22} />
+              <ShoppingBag size={23} />
             </span>
             <div>
-              <p className="text-sm font-medium text-fg">No items yet</p>
-              <p className="mt-1 text-xs text-muted-fg">
-                Tap a product to start an order.
+              <p className="text-sm font-semibold text-fg">Nothing in your order yet</p>
+              <p className="mt-1 max-w-52 text-xs leading-5 text-muted-fg">
+                Choose a product to see it appear here.
               </p>
             </div>
           </div>
@@ -85,9 +100,9 @@ export function Cart({
             {lines.map((line) => (
               <li
                 key={line.product.id}
-                className="flex items-center gap-3 rounded-lg border border-border p-2"
+                className="flex items-center gap-3 rounded-xl border border-border/80 bg-surface p-2.5 shadow-sm"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-muted text-lg leading-none">
+                <div                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-lg leading-none">
                   <span aria-hidden="true">{line.product.emoji}</span>
                 </div>
                 <div className="min-w-0 flex-1">
@@ -134,7 +149,7 @@ export function Cart({
         )}
       </div>
 
-      <div className="border-t border-border bg-surface p-4 py-2 md:py-4">
+      <div className="border-t border-border/80 bg-surface p-4 md:p-5">
         <SummaryRow
           label="Subtotal"
           value={`${currencySymbol}${subtotal.toFixed(2)}`}
@@ -149,9 +164,9 @@ export function Cart({
             value={`-${currencySymbol}${discount.toFixed(2)}`}
           />
         )}
-        <div className="md:mt-3 flex items-center justify-between border-t border-border md:pt-3 mt-1 pt-1">
+        <div className="mt-2 flex items-center justify-between border-t border-border pt-3 md:mt-3">
           <span className="text-sm font-semibold text-fg">Total</span>
-          <span className="text-xl font-bold tabular-nums text-fg">
+          <span className="text-2xl font-bold tabular-nums tracking-tight text-fg">
             {currencySymbol}
             {total.toFixed(2)}
           </span>
@@ -160,10 +175,11 @@ export function Cart({
           disabled={lines.length === 0}
           onClick={onCheckout}
           type="button"
-          className="mt-2 md:mt-4 w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 disabled:bg-surface-muted disabled:text-muted-fg disabled:shadow-none"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/15 transition hover:-translate-y-0.5 hover:opacity-95 hover:shadow-xl hover:shadow-primary/20 disabled:translate-y-0 disabled:bg-surface-muted disabled:text-muted-fg disabled:shadow-none"
         >
           Charge {currencySymbol}
           {total.toFixed(2)}
+          <ArrowRight aria-hidden="true" size={16} />
         </button>
       </div>
     </div>

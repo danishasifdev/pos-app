@@ -66,6 +66,10 @@ export function ResizablePanel({ children }: { children: React.ReactNode }) {
   );
   const panelRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const previousBodyStylesRef = useRef<{
+    cursor: string;
+    userSelect: string;
+  } | null>(null);
   const [room, setRoom] = useState(MAX_WIDTH);
   // read at event time so repeated input in one tick is never stale
   const roomRef = useRef(MAX_WIDTH);
@@ -93,10 +97,39 @@ export function ResizablePanel({ children }: { children: React.ReactNode }) {
     writeStored(Math.min(next, Math.max(MIN_WIDTH, roomRef.current)));
   }, []);
 
+  const restoreDragStyles = useCallback(() => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    const previousStyles = previousBodyStylesRef.current;
+    if (previousStyles) {
+      document.body.style.cursor = previousStyles.cursor;
+      document.body.style.userSelect = previousStyles.userSelect;
+      previousBodyStylesRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const stopDragging = () => restoreDragStyles();
+    window.addEventListener("blur", stopDragging);
+    window.addEventListener("pointerup", stopDragging);
+    window.addEventListener("pointercancel", stopDragging);
+    return () => {
+      window.removeEventListener("blur", stopDragging);
+      window.removeEventListener("pointerup", stopDragging);
+      window.removeEventListener("pointercancel", stopDragging);
+      restoreDragStyles();
+    };
+  }, [restoreDragStyles]);
+
   const onPointerDown = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (draggingRef.current) return;
       event.currentTarget.setPointerCapture(event.pointerId);
       draggingRef.current = true;
+      previousBodyStylesRef.current = {
+        cursor: document.body.style.cursor,
+        userSelect: document.body.style.userSelect,
+      };
       document.body.style.userSelect = "none";
       document.body.style.cursor = "col-resize";
     },
@@ -114,13 +147,11 @@ export function ResizablePanel({ children }: { children: React.ReactNode }) {
 
   const endDrag = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
     if (!draggingRef.current) return;
-    draggingRef.current = false;
+    restoreDragStyles();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    document.body.style.userSelect = "";
-    document.body.style.cursor = "";
-  }, []);
+  }, [restoreDragStyles]);
 
   // arrow keys nudge the panel; the separator is focusable for the same reason.
   // Reads live values rather than closing over them, so repeated presses in one
@@ -164,6 +195,7 @@ export function ResizablePanel({ children }: { children: React.ReactNode }) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
+        onLostPointerCapture={restoreDragStyles}
         role="separator"
         tabIndex={0}
         type="button"

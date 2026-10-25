@@ -236,53 +236,68 @@ export function PosTerminal({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col md:flex-row">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <h1 className="sr-only">Point of sale terminal</h1>
-        <CategoryTabs
-          categories={categories}
-          active={activeCategory}
-          onChange={setActiveCategory}
-        />
-        <div className="px-4 pt-3 md:px-6">
-          <div className="relative">
-            <Search
-              aria-hidden="true"
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg"
-            />
-            <input
-              aria-label="Search products"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products…"
-              className="w-full rounded-lg border border-border bg-surface py-2.5 pl-9 pr-3 text-sm text-fg shadow-sm outline-none transition-colors placeholder:text-muted-fg focus:border-primary"
+    <div className="flex min-h-0 flex-1 flex-col p-2.5 sm:p-3 md:p-0">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-sm md:rounded-none md:border-0 md:bg-transparent md:shadow-none md:flex-row">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <h1 className="sr-only">Point of sale terminal</h1>
+          <div className="flex items-center justify-between gap-3 px-4 pt-4 md:px-6 md:pt-6">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
+                Point of sale
+              </p>
+              <h2 className="mt-1 text-lg font-semibold tracking-tight text-fg md:text-xl">
+                Add to your order
+              </h2>
+            </div>
+            <span className="rounded-full border border-border bg-surface/80 px-3 py-1.5 text-xs font-medium tabular-nums text-muted-fg shadow-sm">
+              {filteredProducts.length}{" "}
+              {filteredProducts.length === 1 ? "item" : "items"}
+            </span>
+          </div>
+          <CategoryTabs
+            categories={categories}
+            active={activeCategory}
+            onChange={setActiveCategory}
+          />
+          <div className="px-4 pt-2 md:px-6 md:pt-3">
+            <div className="relative">
+              <Search
+                aria-hidden="true"
+                size={17}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-fg"
+              />
+              <input
+                aria-label="Search products"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search products by name…"
+                className="w-full rounded-xl border border-border/80 bg-surface/90 py-3 pl-10 pr-3 text-sm text-fg shadow-sm outline-none transition placeholder:text-muted-fg focus:border-primary focus:ring-4 focus:ring-primary/10"
+              />
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ProductGrid
+              products={filteredProducts}
+              currencySymbol={settings.currencySymbol}
+              onAdd={addToCart}
             />
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <ProductGrid
-            products={filteredProducts}
+        <ResizablePanel>
+          <Cart
+            lines={lines}
             currencySymbol={settings.currencySymbol}
-            onAdd={addToCart}
+            taxRate={settings.taxRate}
+            discount={0}
+            onIncrement={increment}
+            onDecrement={decrement}
+            onRemove={remove}
+            onClear={clearCart}
+            onCheckout={() => setShowPayment(true)}
           />
-        </div>
+        </ResizablePanel>
       </div>
-
-      <ResizablePanel>
-        <Cart
-          lines={lines}
-          currencySymbol={settings.currencySymbol}
-          taxRate={settings.taxRate}
-          discount={0}
-          onIncrement={increment}
-          onDecrement={decrement}
-          onRemove={remove}
-          onClear={clearCart}
-          onCheckout={() => setShowPayment(true)}
-        />
-      </ResizablePanel>
 
       {showPayment && (
         <PaymentModal

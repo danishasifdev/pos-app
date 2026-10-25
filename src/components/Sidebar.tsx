@@ -41,7 +41,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
 
   return (
     <aside
-      className={`flex h-full items-center w-16 shrink-0 flex-col gap-1 border-r border-border bg-surface py-4 ${
+      className={`flex h-full w-16 shrink-0 flex-col items-center gap-1 border-r border-border/80 bg-surface py-4 ${
         collapsed ? "md:px-0" : "md:w-fit md:px-3 md:items-start"
       }`}
       data-collapsed={collapsed}
@@ -52,7 +52,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
           aria-label="homepage"
           className="flex items-center gap-2"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/15">
             <Store aria-hidden="true" size={18} />
           </div>
           <span className="sidebar-label text-sm font-semibold tracking-tight text-fg">
@@ -61,7 +61,7 @@ export function Sidebar({ user }: { user: SessionUser }) {
         </Link>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1">
+      <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1.5">
         {nav.map(({ href, label, icon: Icon }) => {
           const active =
             href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -71,23 +71,31 @@ export function Sidebar({ user }: { user: SessionUser }) {
               href={href}
               aria-current={active ? "page" : undefined}
               aria-label={label}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${align} ${
+              className={`group flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm font-medium transition-all duration-150 ${align} ${
                 active
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-accent-soft/80 text-fg shadow-sm ring-1 ring-border/70"
                   : "text-muted-fg hover:bg-surface-muted hover:text-fg"
               }`}
             >
-              <Icon aria-hidden="true" size={18} />
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-surface-muted/80 text-muted-fg group-hover:bg-surface group-hover:text-primary"
+                }`}
+              >
+                <Icon aria-hidden="true" size={17} strokeWidth={2} />
+              </span>
               <span className="sidebar-label">{label}</span>
             </Link>
           );
         })}
       </nav>
-      <div className="mt-auto border-t border-border pt-3">
+      <div className="mt-auto w-full border-t border-border/80 pt-3">
         <button
           aria-expanded={!collapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`mb-1 hidden w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-fg transition-colors hover:bg-surface-muted hover:text-fg md:flex ${align}`}
+          className={`mb-1 hidden w-full items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium text-muted-fg transition-colors hover:bg-surface-muted hover:text-fg md:flex ${align}`}
           onClick={toggleCollapsed}
           type="button"
         >
@@ -101,14 +109,12 @@ export function Sidebar({ user }: { user: SessionUser }) {
           )}
         </button>
         <div
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 ${align}`}
+          className={`mb-2 flex items-center gap-3 rounded-xl px-2.5 py-2 ${align}`}
           title={`${user.email} (${user.role})`}
         >
-          <UserRound
-            aria-hidden="true"
-            className="shrink-0 text-primary"
-            size={18}
-          />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-primary">
+            <UserRound aria-hidden="true" size={17} />
+          </span>
           <div className="sidebar-label-block min-w-0">
             <p className="truncate text-xs font-semibold text-fg">
               {user.email}
@@ -124,10 +130,11 @@ export function Sidebar({ user }: { user: SessionUser }) {
           <Link
             href="/login"
             aria-label="Sign out"
-            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 flex items-center justify-center gap-2"
-            type="button"
+            className={`flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-muted px-2.5 py-2.5 text-sm font-semibold text-fg transition hover:border-primary/30 hover:bg-accent-soft hover:text-primary ${align}`}
           >
-            <LogIn aria-hidden="true" size={16} />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface text-primary shadow-sm">
+              <LogIn aria-hidden="true" size={16} />
+            </span>
             <span className="sidebar-label">Log in</span>
           </Link>
         )}

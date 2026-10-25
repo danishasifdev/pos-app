@@ -32,7 +32,7 @@ export function LogoutButton() {
     <div>
       <button
         aria-label="Sign out"
-        className="flex w-full items-center justify-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-red-100 hover:text-red-800 bg-red-100 disabled:opacity-50 lg:justify-start text-red-700"
+        className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-surface-muted px-2.5 py-2.5 text-sm font-semibold text-fg transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 lg:justify-start"
         disabled={submitting}
         onClick={() => void logout()}
         type="button"
